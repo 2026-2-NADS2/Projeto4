@@ -8,7 +8,7 @@ Projeto 4
 </p>
 ## KFKA - Plataforma de Acompanhamento Escolar
  
-## Grupo [N] / Projeto Interdisciplinar
+## Grupo COMMIT / Projeto Interdisciplinar
  
 **Integrantes:** [Paulo Miguel Miranda Marcelli](https://www.linkedin.com/in/paulo-marcelli-06a7bb304/), [Nome do Integrante 2](#), [Nome do Integrante 3](#)
  
