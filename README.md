@@ -137,5 +137,3 @@ npm run dev
 ```
  
 ---
- 
-<a href="#">Grupo [N]</a> © 2026 by <a href="#">[Integrante 1], [Integrante 2], [Integrante 3]</a> is licensed under, Fecap <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
