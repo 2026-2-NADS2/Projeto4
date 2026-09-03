@@ -10,7 +10,7 @@ Projeto 4
  
 ## Grupo COMMIT / Projeto Interdisciplinar
  
-**Integrantes:** [Paulo Miguel Miranda Marcelli](https://www.linkedin.com/in/paulo-marcelli-06a7bb304/), [Nome do Integrante 2](#), [Nome do Integrante 3](#)
+**Integrantes:** [Paulo Miguel Miranda Marcelli](https://www.linkedin.com/in/paulo-marcelli-06a7bb304/), [Cauã Santos Nascimento](https://www.linkedin.com/in/caua-nascimento/), [Pedro Henrique Santos da Silva](https://www.linkedin.com/in/pedrossilva15/), (#)
  
 **Professores Orientadores:** [Nome do Professor 1](#), [Nome do Professor 2](#), [Nome do Professor 3](#), [Nome do Professor 4](#), [Nome do Professor 5](#)
  
