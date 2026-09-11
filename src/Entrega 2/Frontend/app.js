@@ -3,6 +3,7 @@ import { getDashboard, signIn } from "./js/mock-api.js";
 
 const app = document.querySelector("#app");
 let selectedRole = sessionStorage.getItem("kfka-selected-role") || "";
+let activeSection = "";
 const statusLabel = { publicado: "PUBLICADO", revisao: "EM REVISÃO", rascunho: "RASCUNHO", devolvido: "DEVOLVIDO" };
 const route = () => location.hash.replace(/^#/, "").split("?")[0] || "/";
 const go = path => { location.hash = path; };
@@ -34,14 +35,23 @@ function userChip(data) {
 const status = value => `<span class="status status--${value}">${statusLabel[value]}</span>`;
 function recordCard(record) { return `<article class="record-card"><div class="record-info"><span class="avatar">LM</span><div><p class="record-title">${escapeHtml(record.student)}</p><p class="record-meta">${escapeHtml(record.subject)}</p></div></div><div class="record-result"><span class="score">${escapeHtml(record.score)}</span>${status(record.status)}</div></article>`; }
 
-function dashboardContent(role, data) {
-  if (role === ROLES.RESPONSAVEL) return `<div class="subhead"><span>${data.period}</span>${userChip(data)}</div><section class="record-list" aria-label="Acompanhamentos de Laura Martins">${data.records.map(recordCard).join("")}</section>`;
+function dashboardContent(role, data, section) {
+  if (role === ROLES.RESPONSAVEL) {
+    const filtered = section === "Relatórios publicados"
+      ? data.records.filter(record => record.status === "publicado")
+      : section === "Ciência / retorno"
+      ? data.records.filter(record => record.status === "revisao" || record.status === "devolvido")
+      : data.records;
+    return `<div class="subhead"><span>${data.period}</span>${userChip(data)}</div><section class="record-list" aria-label="Acompanhamentos de Laura Martins">${filtered.map(recordCard).join("")}</section>`;
+  }
+  
   if (role === ROLES.PROFESSOR) return `<div class="subhead"><span>${data.period}</span>${userChip(data)}</div><div class="teacher-layout"><section class="panel"><h2>Novo acompanhamento</h2><p class="panel-intro">Registre o acompanhamento do aluno para enviar à revisão.</p><form id="record-form" class="teacher-form" novalidate><div class="field"><label for="student">Aluno</label><select id="student" required><option value="">Selecione um aluno</option><option>Laura Martins — 6ºA</option><option>Bruno Alves — 6ºA</option></select></div><div class="field"><label for="grade">Média</label><input id="grade" inputmode="decimal" placeholder="Ex.: 8,4" required></div><div class="field"><label for="description">Descrição do acompanhamento</label><textarea id="description" placeholder="Descreva o desenvolvimento do aluno" required></textarea></div><p id="record-message" class="form-message" role="status"></p><button class="button" type="submit">Enviar para revisão</button></form></section><aside class="panel"><h2>Status recente</h2><p class="panel-intro">Acompanhamentos enviados no bimestre.</p><div class="record-list">${data.records.map(recordCard).join("")}</div></aside></div>`;
   return `<div class="subhead"><span>${data.period}</span>${userChip(data)}</div><section class="metric-grid" aria-label="Resumo dos acompanhamentos">${data.metrics.map(([value, label]) => `<article class="metric"><span class="metric-value">${value}</span><div class="metric-label">${label}</div></article>`).join("")}</section><section class="review-table" aria-label="Fila de revisão"><table><thead><tr><th>ALUNO / DISCIPLINA</th><th>PROFESSOR</th><th>MÉDIA</th><th>STATUS</th></tr></thead><tbody>${data.records.map(record => `<tr><td>${escapeHtml(record.student)}</td><td>${escapeHtml(record.teacher)}</td><td class="score">${escapeHtml(record.score)}</td><td>${status(record.status)}</td></tr>`).join("")}</tbody></table></section>`;
 }
 
 function renderDashboard(role) {
   const title = role === ROLES.RESPONSAVEL ? "Meus alunos" : role === ROLES.PROFESSOR ? "Novo acompanhamento" : "Fila de revisão";
+  activeSection = title;
   const navigation = NAVIGATION[role].map(item => `<button class="nav-link ${item === title ? "nav-link--active" : ""}" type="button" data-action="nav-select" data-label="${item}">${item}</button>`).join("");
   app.innerHTML = `<div class="app-shell"><aside class="sidebar"><span class="brand brand--sidebar">KFKA</span><nav class="sidebar__nav" aria-label="Navegação principal">${navigation}<button class="nav-link nav-link--exit" data-action="sign-out" type="button">Sair</button></nav></aside><main class="dashboard-main"><div class="dashboard-head"><h1>${title}</h1></div><div id="dashboard-content" class="loading">Carregando dados...</div></main></div>`;
   loadDashboard(role);
@@ -52,7 +62,7 @@ async function loadDashboard(role) {
   try {
     const data = await getDashboard(role);
     if (route() !== routeForRole(role) || !target) return;
-    target.className = ""; target.innerHTML = dashboardContent(role, data);
+    target.className = ""; target.innerHTML = dashboardContent(role, data, activeSection);
   } catch (error) {
     if (!target) return;
     target.className = "error-panel";
@@ -84,8 +94,10 @@ app.addEventListener("click", event => {
   if (action === "sign-out") { clearSession(); go("/"); }
   if (action === "nav-select") {
     const clicked = event.target.closest("[data-action]");
+    activeSection = clicked.dataset.label;
     document.querySelectorAll(".nav-link").forEach(link => link.classList.remove("nav-link--active"));
     clicked.classList.add("nav-link--active");
+    loadDashboard(getSession().role);
   }
   if (action === "retry") render();
   if (event.target.matches("[data-demo-link='forgot']")) { event.preventDefault(); document.querySelector("#form-error").textContent = "Procure a secretaria para redefinir sua senha."; }
