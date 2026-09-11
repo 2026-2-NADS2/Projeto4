@@ -42,7 +42,7 @@ function dashboardContent(role, data) {
 
 function renderDashboard(role) {
   const title = role === ROLES.RESPONSAVEL ? "Meus alunos" : role === ROLES.PROFESSOR ? "Novo acompanhamento" : "Fila de revisão";
-  const navigation = NAVIGATION[role].map(item => `<button class="nav-link ${item === title ? "nav-link--active" : ""}" type="button">${item}</button>`).join("");
+  const navigation = NAVIGATION[role].map(item => `<button class="nav-link ${item === title ? "nav-link--active" : ""}" type="button" data-action="nav-select" data-label="${item}">${item}</button>`).join("");
   app.innerHTML = `<div class="app-shell"><aside class="sidebar"><span class="brand brand--sidebar">KFKA</span><nav class="sidebar__nav" aria-label="Navegação principal">${navigation}<button class="nav-link nav-link--exit" data-action="sign-out" type="button">Sair</button></nav></aside><main class="dashboard-main"><div class="dashboard-head"><h1>${title}</h1></div><div id="dashboard-content" class="loading">Carregando dados...</div></main></div>`;
   loadDashboard(role);
 }
@@ -82,6 +82,11 @@ app.addEventListener("click", event => {
   if (roleTrigger) { selectedRole = roleTrigger.dataset.role; sessionStorage.setItem("kfka-selected-role", selectedRole); go("/login"); return; }
   const action = event.target.closest("[data-action]")?.dataset.action;
   if (action === "sign-out") { clearSession(); go("/"); }
+  if (action === "nav-select") {
+    const clicked = event.target.closest("[data-action]");
+    document.querySelectorAll(".nav-link").forEach(link => link.classList.remove("nav-link--active"));
+    clicked.classList.add("nav-link--active");
+  }
   if (action === "retry") render();
   if (event.target.matches("[data-demo-link='forgot']")) { event.preventDefault(); document.querySelector("#form-error").textContent = "Procure a secretaria para redefinir sua senha."; }
 });
