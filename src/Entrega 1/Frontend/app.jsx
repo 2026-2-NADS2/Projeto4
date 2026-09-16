@@ -1,5 +1,5 @@
-import { ROLES, ROLE_DETAILS, NAVIGATION, canAccess, clearSession, getSession, isKnownRole, routeForRole, setSession } from "./js/access-control.js";
-import { getDashboard, signIn } from "./js/mock-api.js";
+import { ROLES, ROLE_DETAILS, NAVIGATION, canAccess, clearSession, getSession, isKnownRole, routeForRole, setSession } from "./js/access-control.jsx";
+import { getDashboard, signIn } from "./js/mock-api.jsx";
 
 const qs = (sel, el = document) => el.querySelector(sel);
 const app = qs("#app");
