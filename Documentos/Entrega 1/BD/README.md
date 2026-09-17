@@ -1,59 +1,51 @@
-# KFKA — Entrega 1 de Banco de Dados
+# KFKA — Plataforma de Acompanhamento Escolar
 
-Esta pasta reúne os materiais da primeira entrega de Banco de Dados do projeto **KFKA — Plataforma de Acompanhamento Escolar**.
+Projeto Interdisciplinar desenvolvido no curso de **Análise e Desenvolvimento de Sistemas da FECAP**, durante o 2º semestre de 2026.
 
-## Objetivo da entrega
+O KFKA é uma plataforma de acompanhamento escolar voltada para o registro e consulta de informações acadêmicas, permitindo a interação entre administração, professores e responsáveis.
 
-A proposta da E1 foi criar índices para melhorar o desempenho das consultas do banco de dados e justificar a escolha de cada índice.
+## Banco de Dados
 
-Os índices foram pensados com base nas consultas que o sistema deverá realizar com frequência, como:
+O projeto utiliza **PostgreSQL 18**.
 
-- consulta de acompanhamentos por aluno e bimestre;
-- consulta de histórico de alterações;
-- vínculos de professores com turmas e disciplinas;
-- alunos vinculados a responsáveis;
-- relatórios por tags;
-- consulta de matrículas por ano letivo;
-- registro de ciência dos responsáveis.
+O banco foi desenvolvido inicialmente em ambiente local utilizando PostgreSQL e pgAdmin 4. Posteriormente, a base foi migrada para o **Neon**, permitindo o acesso remoto ao mesmo banco por diferentes máquinas e preparando o projeto para a futura integração com o backend.
 
-## Índices criados
+A estrutura atual possui:
 
-Foram criados 8 índices específicos para melhorar consultas do sistema:
+- 19 tabelas;
+- chaves primárias e estrangeiras;
+- constraints de integridade;
+- trigger para validação dos acompanhamentos;
+- dados fictícios para testes;
+- índices para melhoria de consultas;
+- controle de acesso através de roles do PostgreSQL.
 
-1. `idx_acompanhamento_aluno_bimestre_status`
-2. `idx_historico_acompanhamento_data`
-3. `idx_tdp_professor_ativo`
-4. `idx_aluno_responsavel_responsavel_autorizado`
-5. `idx_acompanhamento_tag_tag`
-6. `idx_acompanhamento_vinculo_bimestre`
-7. `idx_turma_aluno_aluno_ano`
-8. `idx_ciencia_acompanhamento_responsavel`
+## Acesso ao Banco
 
-Além desses, o PostgreSQL já possuía índices criados automaticamente pelas chaves primárias e restrições `UNIQUE`.
+As credenciais reais de acesso ao banco não são armazenadas neste repositório.
 
-## Testes realizados
+Foram definidos diferentes usuários de acordo com a necessidade de acesso:
 
-Os índices foram analisados utilizando `EXPLAIN ANALYZE`.
+- `KFKA_owner` — administração do banco;
+- `caua_dev` — desenvolvimento e manipulação dos dados;
+- `kfka_grupo` — acesso compartilhado de leitura para os integrantes do grupo.
 
-Como a base de testes ainda possui poucos registros, em várias consultas o PostgreSQL optou por `Seq Scan`, pois nesse volume a leitura direta da tabela pode ser mais rápida.
+O usuário `kfka_grupo` possui apenas permissão de consulta (`SELECT`), não podendo inserir, alterar ou excluir dados.
 
-Também foram feitos testes controlados para confirmar que os índices criados podem ser utilizados pelo PostgreSQL quando necessário.
+As credenciais completas são compartilhadas de forma privada entre os integrantes que precisam acessar o banco.
 
-## Arquivos
+## Variáveis de Ambiente
 
-- `E1_Indices_KFKA_Final.pdf` — documento principal da entrega;
-- `Registro_Uso_IA_KFKA.pdf` — registro resumido do uso de IA durante o desenvolvimento;
+O arquivo `.env.example` apresenta a estrutura necessária para configurar a conexão com o PostgreSQL.
 
-## Banco de dados
+Exemplo:
 
-O projeto utiliza PostgreSQL.
+```env
+# PostgreSQL - Neon
 
-Durante o desenvolvimento inicial, o banco foi criado localmente utilizando PostgreSQL 18 e pgAdmin 4.
-
-Posteriormente, foi iniciada a migração do banco para um servidor PostgreSQL remoto no Neon, permitindo o acesso ao mesmo banco por diferentes máquinas e preparando a integração futura com o backend.
-
-## Projeto
-
-Curso: Análise e Desenvolvimento de Sistemas  
-Instituição: FECAP  
-Projeto Interdisciplinar — 2º semestre de 2026
+DATABASE_HOST=HOST_DO_NEON
+DATABASE_PORT=5432
+DATABASE_NAME=KFKA
+DATABASE_USER=kfka_grupo
+DATABASE_PASSWORD=SENHA_DO_BANCO
+DATABASE_SSL=require
