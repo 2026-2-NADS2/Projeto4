@@ -142,3 +142,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Arquivos de usuário e cache do Visual Studio
+.vs/
+*.user
+*.suo
+bin/
+obj/
