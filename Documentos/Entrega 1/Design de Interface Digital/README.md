@@ -6,7 +6,7 @@ Esta entrega reúne os três artefatos de design solicitados: a paleta de cores,
 
 🖌️ 1. Paleta de Cores
 
-🔗 Acessar no Figma
+[🔗 Acessar no Figma](https://www.figma.com/design/YcHqidLHA9nrN1Zjb3EIyD/PALETA-DE-CORES?node-id=0-1&t=tCLYdIuS1xGq9rfY-1)
 
 Referência rápida com todas as cores usadas no projeto, organizadas por contexto:
 
@@ -14,9 +14,10 @@ Tema claro — cores da aplicação (fundo, texto, acentos)
 Tema escuro — a mesma aplicação em modo escuro
 Carimbos de status — Rascunho, Em revisão, Publicado e Devolvido
 Páginas públicas — paleta usada na Landing, Login e Seleção de Perfil
+
 📐 2. Guia de Estilo
 
-🔗 Acessar no Figma
+[🔗 Acessar no Figma](https://www.figma.com/design/wuB6iX8TaErBOXopu5B96R/GUIA-DE-ESTILO?t=Oy3XOAtzuegYLYSU-1)
 
 Documento completo com os padrões visuais do projeto:
 
@@ -25,7 +26,7 @@ Tipografia (títulos, corpo de texto e dados)
 Componentes principais: botões, campos de entrada, navegação lateral, cards de estatística, chip de usuário e tabelas
 🏠 3. Home Page
 
-🔗 Acessar no Figma
+[🔗 Acessar no Figma](https://www.figma.com/design/OmHjrkZqbVAZa8f4MBBSSH/HOME-PAGE?m=auto&t=Oy3XOAtzuegYLYSU-1)
 
 Layout e prototipação da tela inicial do sistema, já aplicando a paleta e os componentes definidos no Guia de Estilo.
 
