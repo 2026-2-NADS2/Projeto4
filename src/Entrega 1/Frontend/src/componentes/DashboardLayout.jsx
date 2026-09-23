@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { NAVIGATION, clearSession } from "../servicos/access-control.js";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 function DashboardLayout({ role, title, activeSection, onSelectSection, children }) {
     const navigate = useNavigate();
@@ -32,6 +33,7 @@ function DashboardLayout({ role, title, activeSection, onSelectSection, children
             <main className="dashboard-main">
                 <div className="dashboard-head">
                     <h1>{title}</h1>
+                    <ThemeToggle />
                 </div>
                 <div className="dashboard-content">
                     {children}

@@ -1,0 +1,73 @@
+/* Paletas do site. Novas seções devem usar estas variáveis, sem cores fixas. */
+:root {
+  color-scheme: light;
+  --paper: #faf6ec;             /* Fundo da página */
+  --surface: #fff;             /* Cartões, painéis e tabelas */
+  --paper-line: #e3dbc8;        /* Bordas e divisórias */
+  --ink: #1b3a4b;              /* Títulos e números em destaque */
+  --text: #23303a;
+  --muted: #606d77;            /* Textos secundários */
+  --cream: #f2f0e5;
+  --table-header: #f3eee0;
+  --field-bg: #f3eee0;
+  --placeholder: #606d77;
+  --focus-ring: #9a6820;
+
+  /* A marca e as ações têm cores próprias, separadas dos títulos e status. */
+  --brand: #1b3a4b;
+  --on-brand: #fff;
+  --button-bg: #1b3a4b;
+  --button-success: #2f6b4f;
+  --sidebar-bg: var(--brand);
+  --sidebar-muted: #bac5c7;
+  --sidebar-focus: #f0c679;
+  --profile-responsavel: linear-gradient(45deg, #2f6b4f, #244f3b);
+  --profile-professor: linear-gradient(45deg, #b9812a, #8f6420);
+  --profile-admin: linear-gradient(45deg, #a8452f, #7e3222);
+  --cta-bg: var(--brand);
+  --cta-text: var(--cream);
+  --access-bg: var(--paper);
+  --access-card: var(--surface);
+
+  /* Mantêm os mesmos significados nos dois temas. */
+  --published: #2f6b4f;
+  --published-bg: #e4f0e9;
+  --review: #8a5b16;
+  --review-bg: #f6ebd6;
+  --draft: #596570;
+  --draft-bg: #eaecee;
+  --returned: #a8452f;
+  --returned-bg: #f5e3de;
+  --danger: #a8452f;
+  --shadow: 0 12px 30px rgb(15 31 40 / 16%);
+}
+
+/* Só as cores mudam: dimensões, fontes e estrutura ficam em styles.css. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0f1f28;
+  --surface: #182c38;
+  --paper-line: #3b5260;
+  --ink: #f2f0e5;
+  --text: #e3e9e8;
+  --muted: #aebdc5;
+  --table-header: #203643;
+  --field-bg: #223541;
+  --placeholder: #aebdc5;
+  --focus-ring: #f0c679;
+  --button-bg: #284c60;
+  --sidebar-bg: #142c3a;
+  --cta-bg: var(--cream);
+  --cta-text: var(--brand);
+  --access-card: #132631;
+  --published: #94d8ad;
+  --published-bg: #203e32;
+  --review: #f0c679;
+  --review-bg: #44351e;
+  --draft: #c2cdd5;
+  --draft-bg: #30404b;
+  --returned: #ffad98;
+  --returned-bg: #472e2a;
+  --danger: #ffad98;
+  --shadow: 0 12px 30px rgb(0 0 0 / 28%);
+}

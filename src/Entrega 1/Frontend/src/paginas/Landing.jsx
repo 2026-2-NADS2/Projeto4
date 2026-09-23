@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
 import AccessLayout from "../componentes/AccessLayout.jsx";
+import ThemeToggle from "../componentes/ThemeToggle.jsx";
 
 export default function Landing() {
     return (
-        <AccessLayout>
+        <AccessLayout showThemeToggle={false}>
             <header className="landing-header">
                 <span className="brand">KFKA</span>
-                <Link className="button button--ink" to="/perfil">Entrar</Link>
+                <div className="landing-actions">
+                    <ThemeToggle />
+                    <Link className="button button--ink" to="/perfil">Entrar</Link>
+                </div>
             </header>
             <section className="hero" aria-labelledby="landing-title">
                 <h1 id="landing-title">

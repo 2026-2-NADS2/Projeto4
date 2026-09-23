@@ -48,7 +48,7 @@ function DashboardProfessor() {
     }
 
     return (
-        <DashboardLayout role={ROLES.PROFESSOR} title={TITLE} activeSection={activeSection} onSelectSection={setActiveSection}>
+        <DashboardLayout role={ROLES.PROFESSOR} title={activeSection} activeSection={activeSection} onSelectSection={setActiveSection}>
             {error && <div className="error-panel"><p>{error}</p></div>}
             {!error && !data && <p className="loading">Carregando dados...</p>}
             {!error && data && (

@@ -4,6 +4,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    // Aplica a preferência antes de carregar a interface, evitando um flash do outro tema.
+    (() => {
+      let saved;
+      try { saved = localStorage.getItem("kfka-theme"); } catch {}
+      const theme = saved === "light" || saved === "dark"
+        ? saved
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
   <title>KFKA</title>
 </head>
 

@@ -1,23 +1,5 @@
-/* 1. Tokens visuais: altere aqui as cores e sombras do sistema inteiro. */
-:root {
-  --paper: #faf6ec;
-  --paper-line: #e3dbc8;
-  --ink: #1b3a4b;
-  --night: #0f1f28;
-  --text: #23303a;
-  --muted: #6b7680;
-  --cream: #f2f0e5;
-  --published: #2f6b4f;
-  --published-bg: #e4f0e9;
-  --review: #b9812a;
-  --review-bg: #f6ebd6;
-  --draft: #6b7680;
-  --draft-bg: #eaecee;
-  --returned: #a8452f;
-  --returned-bg: #f5e3de;
-  --danger: #a8452f;
-  --shadow: 0 12px 30px rgb(15 31 40 / 16%);
-}
+/* 1. Cores dos temas claro e escuro, separadas das regras de layout. */
+@import "./estilos/themes.css";
 
 /* 2. Base e acessibilidade. */
 * {
@@ -59,15 +41,59 @@ h3,
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  background: var(--night);
-  color: var(--cream);
+  background: var(--access-bg);
+  color: var(--text);
+}
+
+.access-page .brand {
+  color: var(--ink);
 }
 
 .landing-header {
   display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   align-items: center;
   justify-content: space-between;
   padding: 26px 42px;
+}
+
+/* O mesmo botão de tema é usado nas telas públicas e nos dashboards. */
+.landing-actions,
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.access-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 40px 0;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.theme-toggle:hover {
+  border-color: var(--ink);
+}
+
+.theme-toggle__symbol {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
 }
 
 .brand {
@@ -103,38 +129,41 @@ h3,
 .button:focus-visible,
 .role-card:focus-visible,
 .nav-link:focus-visible,
+.theme-toggle:focus-visible,
+.back-link:focus-visible,
+.login-options a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #d9d6cc;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
 .button--ink {
-  background: var(--ink);
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--on-brand);
 }
 
 .button--cream {
   min-height: 48px;
   padding-inline: 30px;
   border-radius: 8px;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--cta-bg);
+  color: var(--cta-text);
   font-size: 15px;
 }
 
 .button--green {
   width: 100%;
   min-height: 46px;
-  background: var(--published);
-  color: #fff;
+  background: var(--button-success);
+  color: var(--on-brand);
   font-size: 14.5px;
 }
 
 .button--outline {
   border: 1px solid var(--paper-line);
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -147,6 +176,7 @@ textarea:focus-visible {
 }
 
 .hero h1 {
+  color: var(--ink);
   max-width: 700px;
   margin: 0;
   font-size: clamp(36px, 4vw, 46px);
@@ -156,7 +186,7 @@ textarea:focus-visible {
 .hero p {
   max-width: 600px;
   margin: 26px auto 25px;
-  color: #d9d6cc;
+  color: var(--muted);
   font-size: 16px;
   line-height: 1.4;
 }
@@ -169,6 +199,7 @@ textarea:focus-visible {
 }
 
 .profile-page h1 {
+  color: var(--ink);
   margin: 0 0 46px;
   font-size: 30px;
   text-align: center;
@@ -187,7 +218,7 @@ textarea:focus-visible {
   width: 120px;
   padding: 0;
   border: 0;
-  color: #d9d6cc;
+  color: var(--muted);
   background: transparent;
   font-size: 14px;
 }
@@ -199,7 +230,7 @@ textarea:focus-visible {
   margin-bottom: 12px;
   place-items: center;
   border-radius: 16px;
-  color: #fff;
+  color: var(--on-brand);
   font-family: Fraunces, Georgia, serif;
   font-size: 40px;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
@@ -211,15 +242,15 @@ textarea:focus-visible {
 }
 
 .role-card--responsavel .role-card__letter {
-  background: linear-gradient(45deg, #2f6b4f, #244f3b);
+  background: var(--profile-responsavel);
 }
 
 .role-card--professor .role-card__letter {
-  background: linear-gradient(45deg, #b9812a, #8f6420);
+  background: var(--profile-professor);
 }
 
 .role-card--admin .role-card__letter {
-  background: linear-gradient(45deg, #a8452f, #7e3222);
+  background: var(--profile-admin);
 }
 
 /* Formulário de login. */
@@ -233,7 +264,7 @@ textarea:focus-visible {
   width: min(400px, 100%);
   padding: 30px 38px 32px;
   border-radius: 14px;
-  background: rgb(19 38 49 / 92%);
+  background: var(--access-card);
 }
 
 .back-link {
@@ -241,19 +272,20 @@ textarea:focus-visible {
   margin-bottom: 14px;
   border: 0;
   padding: 0;
-  color: #999994;
+  color: var(--muted);
   background: none;
   font: 500 11px "IBM Plex Mono", monospace;
 }
 
 .login-card h1 {
+  color: var(--ink);
   margin: 0 0 12px;
   font-size: 26px;
 }
 
 .selected-profile {
   margin: -5px 0 14px;
-  color: #bfbdb2;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -264,7 +296,7 @@ textarea:focus-visible {
 }
 
 .field label {
-  color: #d9d6cc;
+  color: var(--text);
   font-size: 12px;
 }
 
@@ -274,8 +306,8 @@ textarea:focus-visible {
   width: 100%;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: var(--cream);
-  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+  background: var(--field-bg);
 }
 
 .field input {
@@ -283,8 +315,10 @@ textarea:focus-visible {
   padding: 0 14px;
 }
 
-.field input::placeholder {
-  color: rgb(242 240 229 / 50%);
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
 }
 
 .field textarea {
@@ -295,12 +329,12 @@ textarea:focus-visible {
 
 .field input[aria-invalid="true"],
 .field textarea[aria-invalid="true"] {
-  border-color: #e6826b;
+  border-color: var(--danger);
 }
 
 .field-error {
   min-height: 14px;
-  color: #ffad98;
+  color: var(--danger);
   font-size: 12px;
 }
 
@@ -314,7 +348,7 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 10px;
   margin-top: 12px;
-  color: #d9d6cc;
+  color: var(--text);
   font-size: 12px;
 }
 
@@ -325,12 +359,12 @@ textarea:focus-visible {
 }
 
 .login-options a {
-  color: #e5e5de;
+  color: var(--ink);
 }
 
 .login-help {
   margin: 13px 0 0;
-  color: #bfbdb2;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -343,8 +377,9 @@ textarea:focus-visible {
 }
 
 .sidebar {
+  --focus-ring: var(--sidebar-focus);
   padding: 28px 20px;
-  background: var(--ink);
+  background: var(--sidebar-bg);
   color: var(--cream);
 }
 
@@ -357,7 +392,7 @@ textarea:focus-visible {
 .nav-link {
   border: 0;
   padding: 0;
-  color: rgb(242 240 229 / 70%);
+  color: var(--sidebar-muted);
   background: transparent;
   text-align: left;
   font-size: 13px;
@@ -413,7 +448,7 @@ textarea:focus-visible {
   border: 1px solid var(--paper-line);
   border-radius: 20px;
   color: var(--text);
-  background: #fff;
+  background: var(--surface);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -425,8 +460,8 @@ textarea:focus-visible {
   height: 26px;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
-  background: var(--ink);
+  color: var(--on-brand);
+  background: var(--brand);
   font-size: 10px;
   font-weight: 600;
 }
@@ -449,7 +484,7 @@ textarea:focus-visible {
   place-items: center;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   color: var(--muted);
   text-align: center;
 }
@@ -498,7 +533,7 @@ textarea:focus-visible {
   padding: 14px 20px;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .record-info {
@@ -575,7 +610,7 @@ textarea:focus-visible {
   padding: 20px;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .panel h2 {
@@ -615,8 +650,8 @@ textarea:focus-visible {
 
 .teacher-form .button {
   justify-self: start;
-  background: var(--ink);
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--on-brand);
 }
 
 .form-message {
@@ -643,7 +678,7 @@ textarea:focus-visible {
   padding: 16px 18px;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .metric-value {
@@ -661,7 +696,7 @@ textarea:focus-visible {
   overflow-x: auto;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 table {
@@ -674,7 +709,7 @@ th {
   height: 40px;
   padding: 0 20px;
   color: var(--muted);
-  background: #f3eee0;
+  background: var(--table-header);
   font: 500 10.5px "IBM Plex Mono", monospace;
   text-align: left;
 }
@@ -697,6 +732,7 @@ td:nth-child(2) {
 
 /* Mensagens de rota inexistente ou acesso bloqueado. */
 .route-not-found {
+  position: relative;
   display: grid;
   min-height: 100dvh;
   place-content: center;
@@ -704,6 +740,11 @@ td:nth-child(2) {
   padding: 24px;
   background: var(--paper);
   text-align: center;
+}
+
+.route-not-found .access-toolbar {
+  position: absolute;
+  inset: 0 0 auto;
 }
 
 .route-not-found h1 {
@@ -762,6 +803,10 @@ td:nth-child(2) {
 }
 
 @media (max-width: 520px) {
+  .access-toolbar {
+    padding-inline: 20px;
+  }
+
   .landing-header {
     padding: 20px;
   }
