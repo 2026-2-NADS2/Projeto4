@@ -82,8 +82,21 @@ A rota `/alunos` precisa de uma conexão válida com o banco de dados para retor
 
 ## Situação dos testes
 
-O servidor local e a integração da rota `/` com a classe `SistemaEscolar` foram testados com sucesso.
+O backend foi executado localmente com Node.js e Express por meio
+do comando `npm start`, ficando disponível em `http://localhost:3000`.
 
-A rota `/alunos` foi testada **sem as credenciais do banco**, confirmando o tratamento de erro quando a conexão não está configurada.
+Testes realizados com sucesso:
 
-**Pendente:** configurar a conexão com o Neon e confirmar que `/alunos` retorna os registros fictícios cadastrados no PostgreSQL. Este README será atualizado após o teste.
+- `GET /`: retornou as informações gerais do KFKA por meio da
+  classe principal `SistemaEscolar`.
+- `GET /alunos`: realizou uma consulta ao PostgreSQL hospedado no
+  Neon e retornou, em formato JSON, os 12 alunos fictícios
+  cadastrados no banco de dados.
+
+A consulta de alunos utiliza a integração entre `server.js`,
+`SistemaEscolar`, `AlunoRepository`, `ConexaoBanco` e a classe `Aluno`.
+
+Esta é a estrutura inicial do backend para a Entrega 1 de POO.
+As funcionalidades de acompanhamento escolar, histórico,
+autenticação e demais operações do sistema ainda serão desenvolvidas
+nas próximas etapas do projeto.
