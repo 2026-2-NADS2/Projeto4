@@ -2,7 +2,7 @@
 
 O código-fonte da Entrega 1 de POO do projeto **KFKA — Plataforma de Acompanhamento Escolar** está disponível em:
 
-**`src/Entrega 1/Backend/`**
+[**`src/Entrega 1/Backend/`**](https://github.com/2026-2-NADS2/Projeto4/tree/main/src/Entrega%201/Backend)
 
 Nessa pasta estão a implementação do backend em JavaScript, as classes do sistema e o arquivo `README.md` com a descrição da estrutura, as instruções de execução e as rotas disponíveis.
 
