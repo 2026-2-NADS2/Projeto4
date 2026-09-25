@@ -100,3 +100,6 @@ Esta é a estrutura inicial do backend para a Entrega 1 de POO.
 As funcionalidades de acompanhamento escolar, histórico,
 autenticação e demais operações do sistema ainda serão desenvolvidas
 nas próximas etapas do projeto.
+
+<img width="1600" height="869" alt="image" src="https://github.com/user-attachments/assets/dc26e786-de8f-48bc-a135-c4cdd1489b57" />
+
