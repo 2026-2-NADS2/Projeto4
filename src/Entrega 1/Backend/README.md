@@ -103,3 +103,15 @@ nas próximas etapas do projeto.
 
 <img width="1600" height="869" alt="image" src="https://github.com/user-attachments/assets/dc26e786-de8f-48bc-a135-c4cdd1489b57" />
 
+## ⚠️ Atenção — Teste fora da rede da FECAP
+
+**Para testar a conexão com o banco de dados, execute o backend em um computador fora da rede da FECAP.**
+
+Durante os testes realizados na faculdade, não foi possível estabelecer conexão com o PostgreSQL hospedado no Neon pela porta TCP 5432. Por esse motivo, a rota `/alunos` apresenta erro de tempo limite de conexão quando executada nessa rede.
+
+Conforme orientação do professor, a avaliação da integração com o banco deve ser realizada **fora da rede da FECAP**, com acesso à internet e com o arquivo `.env` configurado com as credenciais corretas.
+
+**O funcionamento já foi confirmado em um computador pessoal, fora da rede da FECAP:** a rota `http://localhost:3000/alunos` retornou os 12 alunos fictícios cadastrados no PostgreSQL.
+
+A conexão também foi testada com sucesso no notebook de outro integrante, fora da rede da FECAP, confirmando que a consulta ao Neon não depende do computador utilizado no desenvolvimento.
+
