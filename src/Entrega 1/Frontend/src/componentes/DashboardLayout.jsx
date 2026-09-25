@@ -20,6 +20,7 @@ function DashboardLayout({ role, title, activeSection, onSelectSection, children
                             key={item}
                             className={`nav-link ${item === activeSection ? "nav-link--active" : ""}`}
                             type="button"
+                            aria-current={item === activeSection ? "page" : undefined}
                             onClick={() => onSelectSection?.(item)}
                         >
                             {item}

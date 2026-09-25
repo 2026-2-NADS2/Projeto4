@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import AccessLayout from "../componentes/AccessLayout.jsx";
 import { ROLE_DETAILS, isKnownRole, routeForRole, setSession } from "../servicos/access-control.js";
 import { signIn } from "../servicos/mock-api.js";
@@ -14,14 +14,14 @@ export default function Login() {
     const [submitting, setSubmitting] = useState(false);
 
     if (!isKnownRole(selectedRole)) {
-        navigate("/perfil");
-        return null;
+        return <Navigate to="/perfil" replace />;
     }
 
     const label = ROLE_DETAILS[selectedRole].label;
 
     async function handleSubmit(event) {
         event.preventDefault();
+        if (submitting) return;
         const form = event.target;
         const identifier = form.identifier.value.trim();
         const password = form.password.value;
@@ -35,7 +35,8 @@ export default function Login() {
         setFormError("");
 
         try {
-            setSession(await signIn({ identifier, password, role: selectedRole }));
+            const remember = form.remember.checked;
+            setSession(await signIn({ identifier, password, role: selectedRole }), remember);
             navigate(routeForRole(selectedRole));
         } catch (error) {
             setFormError(error.message);
@@ -60,8 +61,9 @@ export default function Login() {
                             placeholder="E-mail ou matrícula"
                             required
                             aria-invalid={Boolean(identifierError)}
+                            aria-describedby="identifier-error"
                         />
-                        <span className="field-error">{identifierError}</span>
+                        <span id="identifier-error" className="field-error" aria-live="polite">{identifierError}</span>
                     </div>
 
                     <div className="field">
@@ -75,8 +77,9 @@ export default function Login() {
                             required
                             minLength={6}
                             aria-invalid={Boolean(passwordError)}
+                            aria-describedby="password-error"
                         />
-                        <span className="field-error">{passwordError}</span>
+                        <span id="password-error" className="field-error" aria-live="polite">{passwordError}</span>
                     </div>
 
                     <p className="field-error" role="alert">{formError}</p>
@@ -86,7 +89,7 @@ export default function Login() {
                     </button>
 
                     <div className="login-options">
-                        <label input type="checkbox" name="remember"> Lembrar de mim
+                        <label><input type="checkbox" name="remember" /> Lembrar de mim</label>
                             <a href="#"
                                 onClick={event => {
                                     event.preventDefault();
@@ -95,7 +98,6 @@ export default function Login() {
 
                                 Esqueceu a senha?
                             </a>
-                        </label>
                     </div>
 
                     <p className="login-help">Ainda não tem acesso? Fale com a secretaria</p>

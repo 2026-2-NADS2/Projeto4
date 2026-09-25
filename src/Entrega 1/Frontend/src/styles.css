@@ -74,26 +74,29 @@ h3,
 
 .theme-toggle {
   flex-shrink: 0;
-  min-height: 40px;
-  padding: 8px 12px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
   border: 1px solid var(--paper-line);
-  border-radius: 6px;
+  border-radius: 12px;
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
-  font-weight: 500;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 16%), inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
 .theme-toggle:hover {
   border-color: var(--ink);
 }
 
+.theme-toggle:active {
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 18%);
+}
+
 .theme-toggle__symbol {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .brand {
@@ -209,6 +212,7 @@ textarea:focus-visible {
   display: flex;
   gap: 48px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .role-card {
@@ -257,11 +261,13 @@ textarea:focus-visible {
 .login-page {
   display: grid;
   place-items: center;
+  min-width: 0;
   padding: 50px 24px;
 }
 
 .login-card {
   width: min(400px, 100%);
+  min-width: 0;
   padding: 30px 38px 32px;
   border-radius: 14px;
   background: var(--access-card);
@@ -291,6 +297,7 @@ textarea:focus-visible {
 
 .field {
   display: grid;
+  min-width: 0;
   gap: 6px;
   margin-top: 10px;
 }
@@ -304,6 +311,7 @@ textarea:focus-visible {
 .field select,
 .field textarea {
   width: 100%;
+  min-width: 0;
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--text);
@@ -424,6 +432,7 @@ textarea:focus-visible {
 
 .dashboard-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -432,6 +441,7 @@ textarea:focus-visible {
 
 .subhead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -534,6 +544,26 @@ textarea:focus-visible {
   border: 1px solid var(--paper-line);
   border-radius: 12px;
   background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.record-description {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.record-info > div,
+.record-title,
+.record-meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.avatar {
+  flex-shrink: 0;
 }
 
 .record-info {
@@ -560,6 +590,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .score,
@@ -602,11 +633,12 @@ textarea:focus-visible {
 /* Área de trabalho do professor. */
 .teacher-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(235px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
   gap: 20px;
 }
 
 .panel {
+  min-width: 0;
   padding: 20px;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
@@ -628,6 +660,33 @@ textarea:focus-visible {
 .teacher-form {
   display: grid;
   gap: 12px;
+}
+
+.teacher-form fieldset {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+
+.field select {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.65;
+  transform: none;
+}
+
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 8px;
 }
 
 .teacher-form .field {
@@ -693,6 +752,8 @@ textarea:focus-visible {
 }
 
 .review-table {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border: 1px solid var(--paper-line);
   border-radius: 12px;
@@ -724,10 +785,29 @@ td {
 td:first-child {
   color: var(--text);
   font-weight: 600;
+  overflow-wrap: anywhere;
+  max-width: 340px;
 }
 
 td:nth-child(2) {
   color: var(--muted);
+}
+
+.review-table td {
+  height: auto;
+  padding: 18px 20px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+.review-table .record-meta {
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.review-table .record-description {
+  margin: 10px 0 0;
+  font-weight: 400;
 }
 
 /* Mensagens de rota inexistente ou acesso bloqueado. */
@@ -752,6 +832,12 @@ td:nth-child(2) {
 }
 
 /* 5. Responsividade para tablet e celular. */
+@media (max-width: 1100px) {
+  .teacher-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 800px) {
   .landing-header {
     padding: 24px;
@@ -775,14 +861,15 @@ td:nth-child(2) {
 
   .sidebar__nav {
     display: flex;
-    overflow-x: auto;
-    gap: 18px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
     margin-top: 16px;
     padding-bottom: 2px;
   }
 
   .nav-link {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-height: 44px;
   }
 
   .nav-link--exit {
@@ -826,6 +913,16 @@ td:nth-child(2) {
 
   .role-list {
     gap: 14px;
+  }
+
+  .profile-page {
+    padding-inline: 16px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
   }
 
   .role-card,

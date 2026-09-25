@@ -7,5 +7,5 @@ export const statusLabel = {
 
 export const RESPONSAVEL_FILTERS = {
     "Relatórios publicados": records => records.filter(record => record.status === "publicado"),
-    "Ciência / retorno": records => records.filter(record => record.status === "revisao" || record.status === "devolvido"),
+    "Ciência / retorno": records => records.filter(record => record.status === "publicado"),
 };

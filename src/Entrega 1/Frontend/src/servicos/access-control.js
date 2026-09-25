@@ -21,8 +21,17 @@ export function canAccess(route, user) {
 }
 
 export function getSession() {
-    try { return JSON.parse(localStorage.getItem("kfka-session")); } catch { return null; }
+    try {
+        const session = JSON.parse(sessionStorage.getItem("kfka-session") || localStorage.getItem("kfka-session"));
+        return session && isKnownRole(session.role) && typeof session.identifier === "string" && session.identifier.trim() ? session : null;
+    } catch { return null; }
 }
 
-export function setSession(session) { localStorage.setItem("kfka-session", JSON.stringify(session)); }
-export function clearSession() { localStorage.removeItem("kfka-session"); }
+export function setSession(session, remember = false) {
+    clearSession();
+    (remember ? localStorage : sessionStorage).setItem("kfka-session", JSON.stringify(session));
+}
+export function clearSession() {
+    localStorage.removeItem("kfka-session");
+    sessionStorage.removeItem("kfka-session");
+}

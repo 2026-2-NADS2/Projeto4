@@ -6,6 +6,7 @@ import DashboardResponsavel from "./paginas/DashboardResponsavel.jsx";
 import DashboardProfessor from "./paginas/DashboardProfessor.jsx";
 import DashboardAdmin from "./paginas/DashboardAdmin.jsx";
 import NaoEncontrada from "./paginas/NaoEncontrada.jsx";
+import ProtectedRoute from "./componentes/ProtectedRoute.jsx";
 
 function App() {
     return (
@@ -14,9 +15,9 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/responsavel" element={<DashboardResponsavel />} />
-                <Route path="/professor" element={<DashboardProfessor />} />
-                <Route path="/admin" element={<DashboardAdmin />} />
+                <Route path="/responsavel" element={<ProtectedRoute role="responsavel"><DashboardResponsavel /></ProtectedRoute>} />
+                <Route path="/professor" element={<ProtectedRoute role="professor"><DashboardProfessor /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardAdmin /></ProtectedRoute>} />
                 <Route path="*" element={<NaoEncontrada />} />
             </Routes>
         </BrowserRouter>
