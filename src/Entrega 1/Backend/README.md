@@ -113,6 +113,7 @@ As funcionalidades de acompanhamento escolar, histórico,
 autenticação e demais operações do sistema ainda serão desenvolvidas
 nas próximas etapas do projeto.
 
+## Registro do backend funcionando e puxando os alunos do banco de dados
 <img width="1600" height="869" alt="image" src="https://github.com/user-attachments/assets/dc26e786-de8f-48bc-a135-c4cdd1489b57" />
 
 ## ⚠️ Atenção — Teste fora da rede da FECAP
