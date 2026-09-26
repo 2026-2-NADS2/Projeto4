@@ -72,7 +72,7 @@ Por segurança, as credenciais do PostgreSQL não estão disponíveis no reposit
 
 Caso o professor queira executar o backend e testar a conexão com o banco de dados, poderá solicitar as credenciais de acesso pelo e-mail:
 
-**[caua.nascto@gmail.com](mailto:caua.nascto@gmail.com)**
+caua.nascto@gmail.com
 
 Após configurar o arquivo `.env` com as credenciais fornecidas, basta executar `npm install` e `npm start` na pasta `Backend`.
 
