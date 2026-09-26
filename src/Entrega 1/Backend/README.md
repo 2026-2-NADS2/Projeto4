@@ -66,6 +66,18 @@ npm start
 
 O servidor será iniciado em `http://localhost:3000`.
 
+### Acesso ao banco de dados para avaliação
+
+Por segurança, as credenciais do PostgreSQL não estão disponíveis no repositório.
+
+Caso o professor queira executar o backend e testar a conexão com o banco de dados, poderá solicitar as credenciais de acesso pelo e-mail:
+
+**[caua.nascto@gmail.com](mailto:caua.nascto@gmail.com)**
+
+Após configurar o arquivo `.env` com as credenciais fornecidas, basta executar `npm install` e `npm start` na pasta `Backend`.
+
+**Atenção:** para testar a rota `/alunos`, é necessário utilizar uma conexão fora da rede da FECAP, devido à falha de acesso à porta 5432 identificada durante os testes no laboratório.
+
 ## Rotas disponíveis
 
 | Método | Rota      | Função                                                                        |
