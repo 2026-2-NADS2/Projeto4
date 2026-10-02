@@ -36,7 +36,7 @@ Layout e prototipação da tela inicial do sistema, já aplicando a paleta e os 
 
 ## 🗺️ 4. Mapa de Navegação
 
-[🔗 Acessar no Figma](COLE-AQUI-O-LINK-DO-MAPA)
+[🔗 Acessar no Figma]( https://www.figma.com/board/6XouFNlbHVpOHNSHmuqukg/KFKA---Mapa-de-Navega%C3%A7%C3%A3o?node-id=0-1&t=YlTpH5bOu5F7WDIC-1)
 
 Fluxo completo de telas do sistema, da Landing Page até cada funcionalidade:
 
