@@ -1,0 +1,9 @@
+# Bibliotecas instaladas pelo npm
+node_modules/
+
+# Credenciais e configurações privadas
+.env
+.env.*
+
+# Permite enviar apenas o modelo de configuração
+!.env.example
