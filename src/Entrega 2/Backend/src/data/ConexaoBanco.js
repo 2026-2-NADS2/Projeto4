@@ -1,4 +1,3 @@
-
 const { Pool } = require("pg");
 
 require("dotenv").config();
@@ -10,12 +9,25 @@ class ConexaoBanco {
 
     criarPool() {
         const host = process.env.DATABASE_HOST;
-        const porta = Number(process.env.DATABASE_PORT || 5432);
-        const banco = process.env.DATABASE_NAME;
-        const usuario = process.env.DATABASE_USER;
-        const senha = process.env.DATABASE_PASSWORD;
+        const porta = Number(
+            process.env.DATABASE_PORT || 5432
+        );
 
-        if (!host || !banco || !usuario || !senha) {
+        const banco =
+            process.env.DATABASE_NAME;
+
+        const usuario =
+            process.env.DATABASE_USER;
+
+        const senha =
+            process.env.DATABASE_PASSWORD;
+
+        if (
+            !host ||
+            !banco ||
+            !usuario ||
+            !senha
+        ) {
             throw new Error(
                 "As configurações de conexão com o banco estão incompletas."
             );
@@ -43,12 +55,46 @@ class ConexaoBanco {
         });
     }
 
-    async query(sql, parametros = []) {
+    async query(
+        sql,
+        parametros = []
+    ) {
         if (this.pool === null) {
             this.criarPool();
         }
 
-        return await this.pool.query(sql, parametros);
+        return await this.pool.query(
+            sql,
+            parametros
+        );
+    }
+
+    async executarTransacao(operacao) {
+        if (this.pool === null) {
+            this.criarPool();
+        }
+
+        const cliente =
+            await this.pool.connect();
+
+        try {
+            await cliente.query("BEGIN");
+
+            const resultado =
+                await operacao(cliente);
+
+            await cliente.query("COMMIT");
+
+            return resultado;
+
+        } catch (erro) {
+            await cliente.query("ROLLBACK");
+
+            throw erro;
+
+        } finally {
+            cliente.release();
+        }
     }
 
     async encerrar() {

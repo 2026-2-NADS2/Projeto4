@@ -136,6 +136,58 @@ class ProfessorRepository {
 
         return resultado.rows;
     }
+
+    async buscarPorUsuario(idUsuario) {
+    const sql = `
+        SELECT
+            p.id_professor,
+            p.id_usuario,
+            p.matricula,
+            p.data_cadastro,
+
+            u.nome,
+            u.email,
+            u.senha_hash,
+            u.perfil,
+            u.ativo,
+            u.data_criacao,
+            u.data_atualizacao
+
+        FROM professor p
+
+        INNER JOIN usuario u
+            ON u.id_usuario = p.id_usuario
+
+        WHERE p.id_usuario = $1;
+    `;
+
+    const resultado =
+        await this.banco.query(
+            sql,
+            [idUsuario]
+        );
+
+    if (resultado.rows.length === 0) {
+        return null;
+    }
+
+    const linha =
+        resultado.rows[0];
+
+    return new Professor(
+        linha.id_usuario,
+        linha.nome,
+        linha.email,
+        linha.senha_hash,
+        linha.perfil,
+        linha.ativo,
+        linha.data_criacao,
+        linha.data_atualizacao,
+        linha.id_professor,
+        linha.matricula,
+        linha.data_cadastro
+    );
+}
 }
 
 module.exports = ProfessorRepository;

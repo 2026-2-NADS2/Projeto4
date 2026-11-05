@@ -118,6 +118,36 @@ class AlunoRepository {
 
         return resultado.rows.length > 0;
     }
+
+    async verificarMatriculaEmTurma(
+        idAluno,
+        idTurma,
+        idAnoLetivo
+    ) {
+        const sql = `
+            SELECT
+                id_turma,
+                id_aluno,
+                id_ano_letivo,
+                ativo
+            FROM turma_aluno
+            WHERE id_aluno = $1
+              AND id_turma = $2
+              AND id_ano_letivo = $3
+              AND ativo = TRUE;
+        `;
+
+        const resultado = await this.banco.query(
+            sql,
+            [
+                idAluno,
+                idTurma,
+                idAnoLetivo
+            ]
+        );
+
+        return resultado.rows.length > 0;
+    }
 }
 
 module.exports = AlunoRepository;
