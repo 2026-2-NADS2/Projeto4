@@ -1,4 +1,5 @@
 const ErroAplicacao = require("../errors/ErroAplicacao");
+const { perfilParaApi } = require("../utils/perfil");
 
 function criarAutenticacaoMiddleware(autenticacaoService) {
     return async function autenticar(req, res, next) {
@@ -23,8 +24,14 @@ function criarAutenticacaoMiddleware(autenticacaoService) {
 }
 
 function autorizar(...perfis) {
+    const permitidos = perfis.map(perfilParaApi);
+
     return function verificarPerfil(req, res, next) {
-        if (!req.usuario || !perfis.includes(req.usuario.perfil)) {
+        const perfil = req.usuario
+            ? perfilParaApi(req.usuario.perfil)
+            : null;
+
+        if (!perfil || !permitidos.includes(perfil)) {
             return next(
                 new ErroAplicacao(
                     "acesso_negado",

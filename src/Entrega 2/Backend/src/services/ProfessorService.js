@@ -1,4 +1,5 @@
 const ErroAplicacao = require("../errors/ErroAplicacao");
+const { perfilParaApi } = require("../utils/perfil");
 
 class ProfessorService {
     constructor(professorRepository) {
@@ -30,7 +31,7 @@ class ProfessorService {
     }
 
     async listar(usuario) {
-        if (usuario.perfil !== "administrador") {
+        if (perfilParaApi(usuario.perfil) !== "administrador") {
             throw new ErroAplicacao(
                 "acesso_negado",
                 "Apenas a coordenação pode listar todos os professores.",
@@ -49,11 +50,12 @@ class ProfessorService {
     }
 
     async listarVinculos(usuario, idProfessor) {
+        const perfil = perfilParaApi(usuario.perfil);
         const proprio =
-            usuario.perfil === "professor" &&
+            perfil === "professor" &&
             Number(usuario.professorId) === Number(idProfessor);
 
-        if (usuario.perfil !== "administrador" && !proprio) {
+        if (perfil !== "administrador" && !proprio) {
             throw new ErroAplicacao(
                 "acesso_negado",
                 "Você não tem acesso aos vínculos deste professor.",

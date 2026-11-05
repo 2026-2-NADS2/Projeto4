@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const criarApp = require("../src/app");
 const Acompanhamento = require("../src/models/Acompanhamento");
 const Usuario = require("../src/models/Usuario");
+const AdminService = require("../src/services/AdminService");
 const AutenticacaoService = require("../src/services/AutenticacaoService");
 const AlunoService = require("../src/services/AlunoService");
 const AcompanhamentoService = require("../src/services/AcompanhamentoService");
@@ -180,6 +181,14 @@ class BancoFalso {
         return Number(idAluno) === 1;
     }
 
+    async verificarMatriculaEmTurma(idAluno, idTurma, idAnoLetivo) {
+        return (
+            Number(idAluno) === 1 &&
+            Number(idTurma) === 1 &&
+            Number(idAnoLetivo) === 1
+        );
+    }
+
     // AcompanhamentoRepository
     async buscarAcompanhamentoPorId(id) {
         const linha = this.acompanhamentos.find(
@@ -335,7 +344,7 @@ before(async () => {
             "Marina Rocha",
             "admin@kfka.com",
             hashAdmin,
-            "administrador",
+            "ADMIN",
             true,
             new Date(),
             new Date()
@@ -345,7 +354,7 @@ before(async () => {
             "Carlos Lima",
             "carlos@kfka.com",
             hashProf,
-            "professor",
+            "PROFESSOR",
             true,
             new Date(),
             new Date()
@@ -355,7 +364,7 @@ before(async () => {
             "Ana Souza",
             "ana@kfka.com",
             hashResp,
-            "responsavel",
+            "RESPONSAVEL",
             true,
             new Date(),
             new Date()
@@ -383,7 +392,13 @@ before(async () => {
         listarPorProfessor: (id) => banco.listarPorProfessor(id),
         listarPorResponsavel: (id) => banco.listarPorResponsavel(id),
         pertenceAoProfessor: (id) => banco.pertenceAoProfessor(id),
-        pertenceAoResponsavel: (id) => banco.pertenceAoResponsavel(id)
+        pertenceAoResponsavel: (id) => banco.pertenceAoResponsavel(id),
+        verificarMatriculaEmTurma: (idAluno, idTurma, idAnoLetivo) =>
+            banco.verificarMatriculaEmTurma(
+                idAluno,
+                idTurma,
+                idAnoLetivo
+            )
     };
     const acompanhamentoRepository = {
         buscarPorId: (id) => banco.buscarAcompanhamentoPorId(id),
@@ -421,11 +436,101 @@ before(async () => {
     );
     const professorService = new ProfessorService(professorRepository);
 
+    let professorAdminCriado = null;
+
+    const adminRepository = {
+        listarAlunos: async () =>
+            banco.alunos.map((aluno) => ({
+                id_aluno: aluno.idAluno,
+                nome: aluno.nome,
+                data_nascimento: aluno.dataNascimento,
+                matricula: aluno.matricula,
+                ativo: aluno.ativo,
+                id_turma: 1,
+                turma: "6A"
+            })),
+        buscarAluno: async (id) => {
+            const aluno = banco.alunos.find(
+                (item) => item.idAluno === Number(id)
+            );
+
+            if (!aluno) return null;
+
+            return {
+                id_aluno: aluno.idAluno,
+                nome: aluno.nome,
+                data_nascimento: aluno.dataNascimento,
+                matricula: aluno.matricula,
+                ativo: aluno.ativo
+            };
+        },
+        buscarAlunoPorMatricula: async (matricula, ignorarId = null) => {
+            const aluno = banco.alunos.find(
+                (item) =>
+                    item.matricula.toLowerCase() ===
+                        String(matricula).toLowerCase() &&
+                    Number(item.idAluno) !== Number(ignorarId)
+            );
+
+            return aluno ? { id_aluno: aluno.idAluno } : null;
+        },
+        criarAluno: async (dados) => {
+            const id =
+                Math.max(...banco.alunos.map((aluno) => aluno.idAluno)) + 1;
+
+            banco.alunos.push({
+                idAluno: id,
+                nome: dados.nome,
+                dataNascimento: dados.dataNascimento,
+                matricula: dados.matricula,
+                ativo: dados.ativo === undefined ? true : dados.ativo
+            });
+
+            return id;
+        },
+        buscarUsuarioPorEmail: async (email) => {
+            const usuario = banco.usuarios.find(
+                (item) =>
+                    item.email.toLowerCase() === String(email).toLowerCase()
+            );
+
+            return usuario
+                ? { id_usuario: usuario.idUsuario, email: usuario.email }
+                : null;
+        },
+        buscarProfessorPorMatricula: async () => null,
+        criarProfessor: async (dados) => {
+            const usuario = await banco.criarUsuario({
+                ...dados,
+                perfil: "PROFESSOR"
+            });
+
+            professorAdminCriado = {
+                id_professor: 99,
+                id_usuario: usuario.idUsuario,
+                nome: dados.nome,
+                email: dados.email,
+                matricula: dados.matricula,
+                ativo: true
+            };
+
+            return { idUsuario: usuario.idUsuario, idProfessor: 99 };
+        },
+        buscarProfessor: async (id) =>
+            Number(id) === 99 ? professorAdminCriado : null
+    };
+
+    const adminService = new AdminService(
+        adminRepository,
+        acompanhamentoService
+    );
+
     const app = criarApp({
         autenticacaoService,
         alunoService,
         acompanhamentoService,
         professorService,
+        adminService,
         bimestreRepository,
         config: {
             corsOrigin: "http://localhost:5173",
@@ -480,6 +585,28 @@ test("rota protegida exige token", async () => {
 
     assert.equal(resposta.status, 401);
     assert.equal(resposta.corpo.erro.codigo, "token_ausente");
+});
+
+test("perfil gravado em maiúsculas é normalizado na API", async () => {
+    const resposta = await requisitar("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+            email: "admin@kfka.com",
+            senha: "Admin@123",
+            perfil: "administrador"
+        })
+    });
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.corpo.dados.usuario.perfil, "administrador");
+
+    const token = resposta.corpo.dados.token;
+    const me = await requisitar("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+    assert.equal(me.status, 200);
+    assert.equal(me.corpo.dados.usuario.perfil, "administrador");
 });
 
 test("administrador lista todos os alunos", async () => {
@@ -638,4 +765,107 @@ test("professor vê os próprios vínculos", async () => {
 
     assert.equal(resposta.status, 200);
     assert.equal(resposta.corpo.dados[0].turma.nome, "6A");
+});
+
+test("rotas administrativas exigem perfil administrador", async () => {
+    const token = await login("carlos@kfka.com", "Prof@123", "professor");
+
+    const resposta = await requisitar("/api/admin/alunos", {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+    assert.equal(resposta.status, 403);
+    assert.equal(resposta.corpo.erro.codigo, "acesso_negado");
+});
+
+test("administrador lista e cria alunos pelo backoffice", async () => {
+    const token = await login("admin@kfka.com", "Admin@123", "administrador");
+
+    const lista = await requisitar("/api/admin/alunos", {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+    assert.equal(lista.status, 200);
+    assert.equal(lista.corpo.dados.length, 2);
+
+    const criado = await requisitar("/api/admin/alunos", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+            nome: "Aluno do Backoffice",
+            dataNascimento: "2015-01-20",
+            matricula: "2026999"
+        })
+    });
+
+    assert.equal(criado.status, 201);
+    assert.equal(criado.corpo.dados.nome, "Aluno do Backoffice");
+    assert.equal(criado.corpo.dados.matricula, "2026999");
+
+    const detalhe = await requisitar(
+        `/api/admin/alunos/${criado.corpo.dados.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    assert.equal(detalhe.status, 200);
+    assert.equal(detalhe.corpo.dados.id, criado.corpo.dados.id);
+});
+
+test("backoffice valida campos e impede matrícula duplicada", async () => {
+    const token = await login("admin@kfka.com", "Admin@123", "administrador");
+
+    const invalido = await requisitar("/api/admin/alunos", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ nome: "A" })
+    });
+
+    assert.equal(invalido.status, 422);
+    assert.ok(invalido.corpo.erro.detalhes.dataNascimento);
+    assert.ok(invalido.corpo.erro.detalhes.matricula);
+
+    const duplicado = await requisitar("/api/admin/alunos", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+            nome: "Outro Aluno",
+            dataNascimento: "2015-02-10",
+            matricula: "2026001"
+        })
+    });
+
+    assert.equal(duplicado.status, 409);
+    assert.equal(duplicado.corpo.erro.codigo, "registro_duplicado");
+    assert.ok(duplicado.corpo.erro.detalhes.matricula);
+});
+
+test("administrador cria professor que consegue autenticar", async () => {
+    const token = await login("admin@kfka.com", "Admin@123", "administrador");
+
+    const criado = await requisitar("/api/admin/professores", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+            nome: "Novo Professor",
+            email: "novo.professor@kfka.com",
+            senha: "Senha@123",
+            matricula: "PROF999"
+        })
+    });
+
+    assert.equal(criado.status, 201);
+    assert.equal(criado.corpo.dados.email, "novo.professor@kfka.com");
+
+    const autenticado = await requisitar("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+            email: "novo.professor@kfka.com",
+            senha: "Senha@123",
+            perfil: "professor"
+        })
+    });
+
+    assert.equal(autenticado.status, 200);
+    assert.equal(autenticado.corpo.dados.usuario.perfil, "professor");
+    assert.equal(autenticado.corpo.dados.usuario.senhaHash, undefined);
 });

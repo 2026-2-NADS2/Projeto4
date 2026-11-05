@@ -1,4 +1,5 @@
 const ErroAplicacao = require("../errors/ErroAplicacao");
+const { perfilParaApi } = require("../utils/perfil");
 
 class AlunoService {
     constructor(alunoRepository) {
@@ -17,10 +18,11 @@ class AlunoService {
 
     async listar(usuario) {
         let alunos;
+        const perfil = perfilParaApi(usuario.perfil);
 
-        if (usuario.perfil === "administrador") {
+        if (perfil === "administrador") {
             alunos = await this.alunoRepository.listarAlunos();
-        } else if (usuario.perfil === "professor") {
+        } else if (perfil === "professor") {
             if (!usuario.professorId) {
                 throw new ErroAplicacao(
                     "sem_vinculo_professor",
@@ -32,7 +34,7 @@ class AlunoService {
             alunos = await this.alunoRepository.listarPorProfessor(
                 usuario.professorId
             );
-        } else if (usuario.perfil === "responsavel") {
+        } else if (perfil === "responsavel") {
             if (!usuario.responsavelId) {
                 return [];
             }
@@ -53,6 +55,7 @@ class AlunoService {
 
     async buscarPorId(idAluno, usuario) {
         const aluno = await this.alunoRepository.buscarPorId(idAluno);
+        const perfil = perfilParaApi(usuario.perfil);
 
         if (!aluno) {
             throw new ErroAplicacao(
@@ -62,7 +65,7 @@ class AlunoService {
             );
         }
 
-        if (usuario.perfil === "professor") {
+        if (perfil === "professor") {
             const permitido =
                 usuario.professorId &&
                 (await this.alunoRepository.pertenceAoProfessor(
@@ -79,7 +82,7 @@ class AlunoService {
             }
         }
 
-        if (usuario.perfil === "responsavel") {
+        if (perfil === "responsavel") {
             const permitido =
                 usuario.responsavelId &&
                 (await this.alunoRepository.pertenceAoResponsavel(
@@ -96,9 +99,9 @@ class AlunoService {
             }
         }
 
-        if (usuario.perfil !== "administrador" &&
-            usuario.perfil !== "professor" &&
-            usuario.perfil !== "responsavel") {
+        if (perfil !== "administrador" &&
+            perfil !== "professor" &&
+            perfil !== "responsavel") {
             throw new ErroAplicacao(
                 "perfil_sem_permissao",
                 "Perfil sem permissão para consultar alunos.",

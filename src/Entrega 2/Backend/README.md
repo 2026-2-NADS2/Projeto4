@@ -140,6 +140,37 @@ abaixo incluem o prefixo `/api`.
 **Filtros de `GET /api/acompanhamentos`:** `idAluno`, `idBimestre`, `idTurma`,
 `idDisciplina`, `idProfessor` e `status`.
 
+### Backoffice administrativo
+
+Todas as rotas abaixo exigem perfil **administrador**. Listagens, detalhes e
+criações usam `GET`, `GET /:id` e `POST /`; atualizações usam `PUT` ou `PATCH`.
+As exclusões são **soft delete** (`ativo = false`), exceto matrículas, vínculos
+aluno–responsável e bimestres, que são removidos de fato.
+
+| Recurso | Rota | Operações |
+| --- | --- | --- |
+| Alunos | `/api/admin/alunos` | listar, criar, detalhar, atualizar, desativar |
+| Responsáveis do aluno | `/api/admin/alunos/:id/responsaveis` | listar, vincular, desvincular |
+| Matrículas do aluno | `/api/admin/alunos/:id/matriculas` | listar, matricular, desmatricular |
+| Professores | `/api/admin/professores` | listar, criar, detalhar, atualizar, desativar |
+| Responsáveis | `/api/admin/responsaveis` | listar, criar, detalhar, atualizar, desativar |
+| Turmas | `/api/admin/turmas` | listar, criar, detalhar, atualizar, desativar |
+| Alunos da turma | `/api/admin/turmas/:id/alunos` | listar (filtro `idAnoLetivo`) |
+| Vínculos da turma | `/api/admin/turmas/:id/vinculos` | listar |
+| Áreas | `/api/admin/areas` | listar, criar, detalhar, atualizar, desativar |
+| Disciplinas | `/api/admin/disciplinas` | listar, criar, detalhar, atualizar, desativar |
+| Vínculos pedagógicos | `/api/admin/vinculos` | listar, criar, detalhar, atualizar, desativar |
+| Anos letivos | `/api/admin/anos-letivos` | listar, criar, detalhar, atualizar, desativar |
+| Bimestres | `/api/admin/bimestres` | listar, criar, detalhar, atualizar, excluir |
+| Revisão | `PATCH /api/admin/acompanhamentos/:id/status` | alterar status do acompanhamento |
+| Auditoria | `GET /api/admin/auditoria` | histórico de mudanças de status |
+
+**Filtros do backoffice:** `q`, `idTurma` e `ativo` em alunos; `idTurma`,
+`idProfessor`, `idDisciplina`, `idAnoLetivo` e `ativo` em vínculos;
+`idAnoLetivo` em bimestres; `idAcompanhamento`, `idUsuario` e `limite` na
+auditoria. O status administrativo aceita `em_revisao`, `devolvido`,
+`publicado` e `cancelado`.
+
 ### Escopo por perfil
 
 - **administrador:** vê todos os dados.
@@ -228,8 +259,9 @@ das views:
 As consultas são parametrizadas e a criação/atualização de acompanhamento grava
 o histórico na mesma operação (CTE), evitando estado parcial.
 
-> A integração com o PostgreSQL não foi executada neste ambiente por ausência das
-> credenciais reais. Os testes automatizados usam repositórios em memória.
+> As consultas de leitura do backoffice foram validadas contra o PostgreSQL real
+> em modo somente leitura. Escritas não foram executadas para não alterar os
+> dados da escola; os testes automatizados usam repositórios em memória.
 
 ## Testes
 
@@ -246,9 +278,12 @@ falsos e cobre:
 - escopo do responsável (apenas publicados);
 - criação, envio e detalhe de acompanhamento pelo professor;
 - validação 422 com detalhes por campo;
-- vínculos do próprio professor.
+- vínculos do próprio professor;
+- bloqueio das rotas administrativas para não administradores;
+- listagem/criação de alunos e validação de matrícula duplicada no backoffice;
+- criação de professor pelo backoffice e login com a conta criada.
 
-Resultado atual: **11 testes, 11 aprovados** (`node --test`).
+Resultado atual: **16 testes, 16 aprovados** (`node --test`).
 
 Os scripts `teste*.js` na raiz são verificações manuais antigas da Entrega 1 e
 dependem de conexão real com o banco; não fazem parte de `npm test`.

@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const criarApp = require("./src/app");
 const ConexaoBanco = require("./src/data/ConexaoBanco");
+const AdminRepository = require("./src/data/AdminRepository");
 const AlunoRepository = require("./src/data/AlunoRepository");
 const AcompanhamentoRepository = require("./src/data/AcompanhamentoRepository");
 const BimestreRepository = require("./src/data/BimestreRepository");
@@ -9,6 +10,7 @@ const ProfessorRepository = require("./src/data/ProfessorRepository");
 const ResponsavelRepository = require("./src/data/ResponsavelRepository");
 const UsuarioRepository = require("./src/data/UsuarioRepository");
 const AcompanhamentoService = require("./src/services/AcompanhamentoService");
+const AdminService = require("./src/services/AdminService");
 const AlunoService = require("./src/services/AlunoService");
 const AutenticacaoService = require("./src/services/AutenticacaoService");
 const ProfessorService = require("./src/services/ProfessorService");
@@ -25,6 +27,7 @@ if (!process.env.JWT_SECRET) {
 
 const banco = new ConexaoBanco();
 
+const adminRepository = new AdminRepository(banco);
 const alunoRepository = new AlunoRepository(banco);
 const acompanhamentoRepository = new AcompanhamentoRepository(banco);
 const bimestreRepository = new BimestreRepository(banco);
@@ -59,6 +62,11 @@ const acompanhamentoService = new AcompanhamentoService(
 
 const professorService = new ProfessorService(professorRepository);
 
+const adminService = new AdminService(
+    adminRepository,
+    acompanhamentoService
+);
+
 const origens = String(
     process.env.CORS_ORIGIN || "http://localhost:5173"
 )
@@ -71,6 +79,7 @@ const app = criarApp({
     alunoService,
     acompanhamentoService,
     professorService,
+    adminService,
     bimestreRepository,
     config: {
         corsOrigin: origens.includes("*") ? true : origens

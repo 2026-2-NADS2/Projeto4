@@ -9,6 +9,7 @@ const criarAlunoRoutes = require("./routes/alunoRoutes");
 const criarAcompanhamentoRoutes = require("./routes/acompanhamentoRoutes");
 const criarProfessorRoutes = require("./routes/professorRoutes");
 const criarCatalogoRoutes = require("./routes/catalogoRoutes");
+const criarAdminRoutes = require("./routes/adminRoutes");
 const {
     criarAutenticacaoMiddleware
 } = require("./middlewares/autenticacao");
@@ -20,6 +21,7 @@ function criarApp(dependencias) {
         alunoService,
         acompanhamentoService,
         professorService,
+        adminService,
         bimestreRepository,
         config = {}
     } = dependencias;
@@ -60,6 +62,10 @@ function criarApp(dependencias) {
     app.use(
         "/api/professores",
         criarProfessorRoutes(professorService, autenticar)
+    );
+    app.use(
+        "/api/admin",
+        criarAdminRoutes(adminService, autenticar)
     );
     app.use(
         "/api",

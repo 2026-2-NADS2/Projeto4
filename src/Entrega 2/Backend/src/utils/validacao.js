@@ -1,6 +1,21 @@
 const ErroAplicacao = require("../errors/ErroAplicacao");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const HORA = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+function dataValida(valor) {
+    if (!DATA_ISO.test(valor)) return false;
+
+    const [ano, mes, dia] = valor.split("-").map(Number);
+    const data = new Date(Date.UTC(ano, mes - 1, dia));
+
+    return (
+        data.getUTCFullYear() === ano &&
+        data.getUTCMonth() === mes - 1 &&
+        data.getUTCDate() === dia
+    );
+}
 
 function vazio(valor) {
     return valor === undefined || valor === null || valor === "";
@@ -40,6 +55,31 @@ function validarRegra(valor, regra) {
         }
         if (Buffer.byteLength(valor, "utf8") > 72) {
             return "A senha deve ter no máximo 72 bytes.";
+        }
+        return null;
+    }
+
+    if (regra.tipo === "data") {
+        if (typeof valor !== "string" || !dataValida(valor.trim())) {
+            return "Informe uma data válida no formato AAAA-MM-DD.";
+        }
+        return null;
+    }
+
+    if (regra.tipo === "hora") {
+        if (typeof valor !== "string" || !HORA.test(valor.trim())) {
+            return "Informe um horário válido no formato HH:MM.";
+        }
+        return null;
+    }
+
+    if (regra.tipo === "booleano") {
+        if (
+            typeof valor !== "boolean" &&
+            valor !== "true" &&
+            valor !== "false"
+        ) {
+            return "Informe true ou false.";
         }
         return null;
     }
@@ -89,6 +129,11 @@ function limpar(valor, regra) {
     if (regra.tipo === "senha") return valor;
     if (regra.tipo === "inteiro" || regra.tipo === "numero") return Number(valor);
     if (regra.tipo === "enum") return String(valor).toLowerCase();
+    if (regra.tipo === "data") return valor.trim();
+    if (regra.tipo === "hora") return valor.trim();
+    if (regra.tipo === "booleano") {
+        return valor === true || valor === "true";
+    }
 
     return valor;
 }

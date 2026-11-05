@@ -1,4 +1,5 @@
 const Usuario = require("../models/Usuario");
+const { perfilParaBanco } = require("../utils/perfil");
 
 class UsuarioRepository {
     constructor(banco) {
@@ -91,7 +92,7 @@ class UsuarioRepository {
             nome,
             email,
             senhaHash,
-            perfil
+            perfilParaBanco(perfil) || perfil
         ]);
 
         return this.montarUsuario(resultado.rows[0]);

@@ -335,67 +335,6 @@ class AcompanhamentoRepository {
         return resultado.rows;
     }
 
-    async criar(dados) {
-        const sql = `
-            INSERT INTO acompanhamento (
-                id_aluno,
-                id_vinculo,
-                id_bimestre,
-                descricao,
-                media,
-                status
-            )
-            VALUES (
-                $1,
-                $2,
-                $3,
-                $4,
-                $5,
-                $6
-            )
-            RETURNING
-                id_acompanhamento,
-                id_aluno,
-                id_vinculo,
-                id_bimestre,
-                descricao,
-                media,
-                status,
-                data_criacao,
-                data_atualizacao;
-        `;
-
-        const valores = [
-            dados.idAluno,
-            dados.idVinculo,
-            dados.idBimestre,
-            dados.descricao,
-            dados.media,
-            dados.status
-        ];
-
-        const resultado =
-            await this.banco.query(
-                sql,
-                valores
-            );
-
-        const linha =
-            resultado.rows[0];
-
-        return new Acompanhamento(
-            linha.id_acompanhamento,
-            linha.id_aluno,
-            linha.id_vinculo,
-            linha.id_bimestre,
-            linha.descricao,
-            linha.media,
-            linha.status,
-            linha.data_criacao,
-            linha.data_atualizacao
-        );
-    }
-
     async atualizarStatus(
     idAcompanhamento,
     novoStatus,

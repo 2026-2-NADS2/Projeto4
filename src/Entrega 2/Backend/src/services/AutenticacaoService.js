@@ -1,5 +1,9 @@
 const bcrypt = require("bcryptjs");
 const ErroAplicacao = require("../errors/ErroAplicacao");
+const {
+    perfilParaApi,
+    perfilParaBanco
+} = require("../utils/perfil");
 
 const PERFIS_PUBLICOS = ["responsavel"];
 
@@ -16,24 +20,26 @@ class AutenticacaoService {
     }
 
     async montarUsuarioPublico(usuario) {
+        const perfil = perfilParaApi(usuario.perfil);
+
         const dados = {
             idUsuario: usuario.idUsuario,
             nome: usuario.nome,
             email: usuario.email,
-            perfil: usuario.perfil,
+            perfil,
             ativo: usuario.ativo,
             professorId: null,
             responsavelId: null
         };
 
-        if (usuario.perfil === "professor" && this.professorRepository) {
+        if (perfil === "professor" && this.professorRepository) {
             const professor = await this.professorRepository.buscarPorUsuario(
                 usuario.idUsuario
             );
             dados.professorId = professor ? professor.idProfessor : null;
         }
 
-        if (usuario.perfil === "responsavel" && this.responsavelRepository) {
+        if (perfil === "responsavel" && this.responsavelRepository) {
             const responsavel =
                 await this.responsavelRepository.buscarPorUsuario(
                     usuario.idUsuario
@@ -73,14 +79,14 @@ class AutenticacaoService {
 
         if (
             perfilSolicitado &&
-            String(perfilSolicitado).toLowerCase() !==
-                String(usuario.perfil).toLowerCase()
+            perfilParaApi(perfilSolicitado) !==
+                perfilParaApi(usuario.perfil)
         ) {
             throw new ErroAplicacao(
                 "outro_perfil",
                 "Este e-mail pertence a outro perfil.",
                 403,
-                { perfil: usuario.perfil }
+                { perfil: perfilParaApi(usuario.perfil) }
             );
         }
 
@@ -110,7 +116,9 @@ class AutenticacaoService {
     }
 
     async registrar({ nome, email, senha, perfil }) {
-        const perfilNormalizado = String(perfil || "responsavel").toLowerCase();
+        const perfilNormalizado = perfilParaApi(
+            perfil || "responsavel"
+        );
 
         if (!PERFIS_PUBLICOS.includes(perfilNormalizado)) {
             throw new ErroAplicacao(
@@ -139,7 +147,7 @@ class AutenticacaoService {
                 nome,
                 email,
                 senhaHash,
-                perfil: perfilNormalizado
+                perfil: perfilParaBanco(perfilNormalizado)
             });
 
             return await this.montarUsuarioPublico(usuario);

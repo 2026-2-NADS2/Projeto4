@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const ErroAplicacao = require("../errors/ErroAplicacao");
+const { perfilParaApi } = require("../utils/perfil");
 
 class TokenService {
     constructor(segredo, expiracao = "8h") {
@@ -16,7 +17,7 @@ class TokenService {
     emitir(usuario) {
         return jwt.sign(
             {
-                perfil: usuario.perfil,
+                perfil: perfilParaApi(usuario.perfil),
                 nome: usuario.nome,
                 email: usuario.email
             },

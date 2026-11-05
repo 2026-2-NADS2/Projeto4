@@ -4,6 +4,10 @@ const ErroAplicacao =
 const { validarStatus } =
     require("../utils/validacao");
 
+const {
+    perfilParaApi
+} = require("../utils/perfil");
+
 
 const STATUS_LISTA = [
     "RASCUNHO",
@@ -45,16 +49,7 @@ class AcompanhamentoService {
     // =====================================================
 
     normalizarPerfil(perfil) {
-        const valor =
-            String(perfil || "")
-                .trim()
-                .toLowerCase();
-
-        if (valor === "admin") {
-            return "administrador";
-        }
-
-        return valor;
+        return perfilParaApi(perfil);
     }
 
 
@@ -362,7 +357,9 @@ class AcompanhamentoService {
                             item.usuario,
 
                         perfil:
-                            item.perfil,
+                            perfilParaApi(
+                                item.perfil
+                            ),
 
                         estadoAnterior:
                             item.estado_anterior,
