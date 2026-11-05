@@ -15,7 +15,7 @@ class Acompanhamento {
         this.idVinculo = idVinculo;
         this.idBimestre = idBimestre;
         this.descricao = descricao;
-        this.media = Number(media);
+        this.media = media === null || media === undefined ? null : Number(media);
         this.status = status;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;

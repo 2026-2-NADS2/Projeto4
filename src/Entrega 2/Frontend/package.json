@@ -2,15 +2,23 @@
   "name": "kfka-frontend-entrega-2",
   "private": true,
   "version": "2.0.0",
-  "description": "Protótipo navegável do KFKA (Entrega 2): HTML, CSS e JavaScript puros, sem build.",
+  "description": "Frontend React do KFKA (Entrega 2), migrado do protótipo navegável em HTML/CSS/JS.",
+  "type": "module",
   "scripts": {
-    "start": "python3 -m http.server 8000",
-    "test": "node tests/crawl.js && node tests/flows.js && node tests/conta.js && node tests/acessibilidade.js && node tests/pior-caso.js",
-    "format": "prettier --write \"css/*.css\" \"js/**/*.js\" \"tests/*.js\" index.html",
-    "format:check": "prettier --check \"css/*.css\" \"js/**/*.js\" \"tests/*.js\" index.html"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"index.html\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"index.html\""
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.11.0"
   },
   "devDependencies": {
-    "playwright": "^1.56.1",
-    "prettier": "^3.8.1"
+    "@vitejs/plugin-react": "^6.0.4",
+    "prettier": "^3.8.1",
+    "vite": "^8.2.0"
   }
 }

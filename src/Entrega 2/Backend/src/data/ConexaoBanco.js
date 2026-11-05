@@ -21,15 +21,23 @@ class ConexaoBanco {
             );
         }
 
+        const usarSsl =
+            String(process.env.DATABASE_SSL || "true").toLowerCase() !==
+            "false";
+
         this.pool = new Pool({
             host: host,
             port: porta,
             database: banco,
             user: usuario,
             password: senha,
-            ssl: {
-                rejectUnauthorized: true
-            },
+            ...(usarSsl
+                ? {
+                      ssl: {
+                          rejectUnauthorized: true
+                      }
+                  }
+                : {}),
             max: 5,
             connectionTimeoutMillis: 10000
         });
@@ -41,6 +49,13 @@ class ConexaoBanco {
         }
 
         return await this.pool.query(sql, parametros);
+    }
+
+    async encerrar() {
+        if (this.pool !== null) {
+            await this.pool.end();
+            this.pool = null;
+        }
     }
 }
 

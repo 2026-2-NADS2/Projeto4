@@ -1,10 +1,12 @@
 {
-  "name": "kfka_poo_entrega1",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "kfka-backend-entrega-2",
+  "version": "2.0.0",
+  "description": "API REST do KFKA para a Entrega 2, com autenticação, validação e PostgreSQL.",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
@@ -12,8 +14,11 @@
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0"
   }
 }

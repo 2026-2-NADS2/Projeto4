@@ -1,59 +1,94 @@
-const ProfessorRepository =
-    require("./src/data/ProfessorRepository");
-const AutenticacaoService =
-    require("./src/services/AutenticacaoService");
-const UsuarioRepository = require("./src/data/UsuarioRepository");
-const express = require("express");
+require("dotenv").config();
 
+const criarApp = require("./src/app");
 const ConexaoBanco = require("./src/data/ConexaoBanco");
 const AlunoRepository = require("./src/data/AlunoRepository");
-const SistemaEscolar = require("./src/services/SistemaEscolar");
+const AcompanhamentoRepository = require("./src/data/AcompanhamentoRepository");
+const BimestreRepository = require("./src/data/BimestreRepository");
+const ProfessorRepository = require("./src/data/ProfessorRepository");
+const ResponsavelRepository = require("./src/data/ResponsavelRepository");
+const UsuarioRepository = require("./src/data/UsuarioRepository");
+const AcompanhamentoService = require("./src/services/AcompanhamentoService");
+const AlunoService = require("./src/services/AlunoService");
+const AutenticacaoService = require("./src/services/AutenticacaoService");
+const ProfessorService = require("./src/services/ProfessorService");
+const TokenService = require("./src/services/TokenService");
 
-const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
-// Criação dos objetos que serão utilizados pelo sistema.
+if (!process.env.JWT_SECRET) {
+    console.error(
+        "JWT_SECRET não definido. Crie o arquivo .env a partir de .env.example antes de iniciar a API."
+    );
+    process.exit(1);
+}
+
 const banco = new ConexaoBanco();
 
 const alunoRepository = new AlunoRepository(banco);
-const usuarioRepository = new UsuarioRepository(banco);
+const acompanhamentoRepository = new AcompanhamentoRepository(banco);
+const bimestreRepository = new BimestreRepository(banco);
 const professorRepository = new ProfessorRepository(banco);
+const responsavelRepository = new ResponsavelRepository(banco);
+const usuarioRepository = new UsuarioRepository(banco);
 
-const autenticacaoService =
-    new AutenticacaoService(usuarioRepository);
-
-const sistemaEscolar = new SistemaEscolar(
-    alunoRepository,
-    usuarioRepository,
-    professorRepository,
-    autenticacaoService
+const tokenService = new TokenService(
+    process.env.JWT_SECRET,
+    process.env.JWT_EXPIRES_IN || "8h"
 );
-// Permite que o servidor receba informações no formato JSON.
-app.use(express.json());
 
-// Rota principal: apresenta informações sobre o sistema.
-app.get("/", (req, res) => {
-    const informacoes = sistemaEscolar.obterInformacoes();
+const autenticacaoService = new AutenticacaoService(
+    usuarioRepository,
+    tokenService,
+    {
+        professorRepository,
+        responsavelRepository
+    }
+);
 
-    res.json(informacoes);
-});
+const alunoService = new AlunoService(alunoRepository);
 
-// Rota de consulta dos alunos cadastrados.
-app.get("/alunos", async (req, res) => {
-    try {
-        const alunos = await sistemaEscolar.listarAlunos();
+const acompanhamentoService = new AcompanhamentoService(
+    acompanhamentoRepository,
+    professorRepository,
+    {
+        alunoRepository,
+        bimestreRepository
+    }
+);
 
-        res.json(alunos);
-    } catch (erro) {
-        console.error("Erro ao consultar alunos:", erro.message);
+const professorService = new ProfessorService(professorRepository);
 
-        res.status(503).json({
-            erro: "Não foi possível consultar os alunos. Verifique a conexão com o banco de dados."
-        });
+const origens = String(
+    process.env.CORS_ORIGIN || "http://localhost:5173"
+)
+    .split(",")
+    .map((origem) => origem.trim())
+    .filter(Boolean);
+
+const app = criarApp({
+    autenticacaoService,
+    alunoService,
+    acompanhamentoService,
+    professorService,
+    bimestreRepository,
+    config: {
+        corsOrigin: origens.includes("*") ? true : origens
     }
 });
 
-// Inicia o servidor local.
-app.listen(PORT, () => {
+const servidor = app.listen(PORT, () => {
     console.log(`Servidor KFKA iniciado em http://localhost:${PORT}`);
+    console.log(`API disponível em http://localhost:${PORT}/api`);
 });
+
+async function encerrar(sinal) {
+    console.log(`\n${sinal} recebido. Encerrando o servidor...`);
+    servidor.close(async () => {
+        await banco.encerrar();
+        process.exit(0);
+    });
+}
+
+process.on("SIGINT", () => encerrar("SIGINT"));
+process.on("SIGTERM", () => encerrar("SIGTERM"));
