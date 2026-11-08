@@ -282,16 +282,14 @@ npm run build     # saída em dist/
 npm run preview   # conferência local
 ```
 
-Para publicar com o back-end:
+**Deploy atual:** <https://project-kfka.vercel.app> (Vercel, root `src/Entrega 2/Frontend`).
 
-1. Gere `dist/` (`VITE_API_URL` definida no ambiente de build; com front e back no
-   mesmo domínio, mantenha `/api`).
-2. O Express da Entrega 2 já serve `../Frontend/dist` com `express.static` e
-   fallback de SPA (`../Backend/src/app.js`). Basta iniciar o back-end.
-3. Garanta que o processo Node receba as variáveis sensíveis por variáveis de
-   ambiente do provedor (nunca no repositório).
-4. Teste o login, as rotas protegidas e o recarregamento direto de uma URL interna
-   (ex.: `/familia/relatorios/rel-102`) para validar o fallback.
-
-Enquanto a integração com a API não for feita, o site publicado continua usando os
-dados simulados do bundle.
+- A API está no Railway em <https://projeto4-production.up.railway.app/api> e o frontend a
+  encontra por `VITE_API_URL` (tipo **Config**, embutida no build — ao mudar o valor, faça
+  Redeploy).
+- O `vercel.json` define o build (`npm run build`), a saída (`dist`) e o rewrite de SPA,
+  necessário para recarregar rotas internas como `/admin/revisao`.
+- O Express da Entrega 2 também consegue servir `../Frontend/dist` localmente, com
+  `express.static` e fallback de SPA (`../Backend/src/app.js`), mas em produção o frontend é
+  servido pela Vercel.
+- O passo a passo completo de publicação está em [`../DEPLOY.md`](../DEPLOY.md).

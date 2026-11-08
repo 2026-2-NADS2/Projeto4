@@ -26,7 +26,13 @@ Configurações sensíveis em `.env`, ignorado pelo Git, com modelo em `.env.exa
 
 ### 6. Aplicação publicada e acessível
 
-O Express serve o build do frontend (`Frontend/dist`) e mantém a API em `/api`, permitindo publicar front e back juntos em um serviço Node com as variáveis de ambiente configuradas no provedor.
+Publicada em dois serviços:
+
+- **Frontend (Vercel):** <https://project-kfka.vercel.app>
+- **API (Railway):** <https://projeto4-production.up.railway.app> — healthcheck em `/api/status`
+- **Banco:** PostgreSQL no Neon, acessado apenas pela API
+
+O Express mantém a API em `/api` e o frontend é servido pela Vercel, com `CORS_ORIGIN` restringindo as origens permitidas. O passo a passo completo está em [`../DEPLOY.md`](../DEPLOY.md).
 
 ## Como executar
 

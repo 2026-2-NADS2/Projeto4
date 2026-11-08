@@ -123,17 +123,27 @@ Link do protótipo: `[inserir link do Figma]`
 ## 🚀 Como executar
  
 ```bash
-# Backend
-cd backend
+# Backend (Entrega 2)
+cd "src/Entrega 2/Backend"
 npm install
-cp .env.example .env   # configurar credenciais do MySQL
-npm run dev
+cp .env.example .env   # configurar PostgreSQL e JWT_SECRET
+npm start
  
-# Frontend
-cd frontend
+# Frontend (Entrega 2)
+cd "src/Entrega 2/Frontend"
 npm install
-cp .env.example .env   # configurar URL base da API
 npm run dev
 ```
  
+---
+
+## 🌐 Aplicação publicada
+
+- **Frontend (Vercel):** <https://project-kfka.vercel.app>
+- **API (Railway):** <https://projeto4-production.up.railway.app/api>
+- **Banco:** PostgreSQL no Neon
+
+O passo a passo de publicação (variáveis de ambiente, CORS e deploy) está em
+[`src/Entrega 2/DEPLOY.md`](<src/Entrega 2/DEPLOY.md>).
+
 ---
