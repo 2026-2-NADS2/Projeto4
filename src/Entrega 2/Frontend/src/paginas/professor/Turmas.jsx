@@ -11,7 +11,7 @@ import StatusBadge from "../../componentes/StatusBadge.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
 import { fmtMedia } from "../../utilitarios/formatadores.js";
-import { BIM_ATUAL, progressoDaTurma, registroDe } from "../../utilitarios/professor.js";
+import { bimestreAtual, progressoDaTurma, registroDe } from "../../utilitarios/professor.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 const FILTROS = [
@@ -26,7 +26,7 @@ function acaoDoRegistro(aluno, disc, registro) {
     return (
       <Link
         className="btn btn-primary btn-sm"
-        to={`/professor/registro/novo?aluno=${aluno.id}&disc=${disc}&bim=${BIM_ATUAL}`}
+        to={`/professor/registro/novo?aluno=${aluno.id}&disc=${disc}&bim=${bimestreAtual()}`}
       >
         <Icone nome="plus" className="icon-sm" /> Registrar
       </Link>

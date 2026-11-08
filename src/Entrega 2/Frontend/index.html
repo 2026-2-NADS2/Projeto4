@@ -1,64 +1,58 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="color-scheme" content="light dark" />
-    <title>KFKA — Acompanhamento Escolar</title>
-    <meta
-      name="description"
-      content="KFKA: acompanhamento escolar bimestral para coordenação, professores e famílias."
-    />
-    <meta name="theme-color" content="#10252F" />
-    <meta property="og:title" content="KFKA — Acompanhamento Escolar" />
-    <meta
-      property="og:description"
-      content="Escola, professores e famílias acompanhando juntos o desenvolvimento bimestral dos alunos."
-    />
-    <meta property="og:type" content="website" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%231B3A4B'/%3E%3Cg fill='none' stroke-width='4.4' stroke-linecap='round'%3E%3Cpath d='M13.5 10v20' stroke='%23fff'/%3E%3Cpath d='M15.5 20C20 20 23 15 27.5 10.5' stroke='%2374C0FC'/%3E%3Cpath d='M15.5 20C20 20 23 25 27.5 29.5' stroke='%235FD4A8'/%3E%3C/g%3E%3Ccircle cx='15.4' cy='20' r='4.4' fill='%23FFC94A' stroke='%231B3A4B' stroke-width='1.6'/%3E%3C/svg%3E"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-    />
-    <script>
-      // Aplica tema e preferências antes do React para evitar "flash" de tema errado.
-      (() => {
-        try {
-          const prefs = JSON.parse(localStorage.getItem("kfka-prefs") || "{}");
-          const tema = prefs.tema || "sistema";
-          const escuro =
-            tema === "escuro" ||
-            (tema === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (tema !== "sistema") {
-            document.documentElement.dataset.theme = escuro ? "dark" : "light";
-          }
-          document.documentElement.style.colorScheme = escuro ? "dark" : "light";
-          if (prefs.texto && prefs.texto !== "100") {
-            document.documentElement.style.fontSize = `${prefs.texto}%`;
-          }
-          document.documentElement.classList.toggle("texto-espacado", Boolean(prefs.espaco));
-          document.documentElement.classList.toggle("links-sublinhados", Boolean(prefs.links));
-          document.documentElement.classList.toggle(
-            "menos-movimento",
-            Boolean(prefs.menosMovimento),
-          );
-        } catch {
-          /* preferência inválida: segue o padrão do sistema */
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>KFKA — Acompanhamento Escolar</title>
+  <meta name="description" content="KFKA: acompanhamento escolar bimestral para coordenação, professores e famílias." />
+  <meta name="theme-color" content="#10252F" />
+  <meta property="og:title" content="KFKA — Acompanhamento Escolar" />
+  <meta property="og:description"
+    content="Escola, professores e famílias acompanhando juntos o desenvolvimento bimestral dos alunos." />
+  <meta property="og:type" content="website" />
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%231B3A4B'/%3E%3Cg fill='none' stroke-width='4.4' stroke-linecap='round'%3E%3Cpath d='M13.5 10v20' stroke='%23fff'/%3E%3Cpath d='M15.5 20C20 20 23 15 27.5 10.5' stroke='%2374C0FC'/%3E%3Cpath d='M15.5 20C20 20 23 25 27.5 29.5' stroke='%235FD4A8'/%3E%3C/g%3E%3Ccircle cx='15.4' cy='20' r='4.4' fill='%23FFC94A' stroke='%231B3A4B' stroke-width='1.6'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+  <script>
+    // Aplica tema e preferências antes do React para evitar "flash" de tema errado.
+    (() => {
+      try {
+        const prefs = JSON.parse(localStorage.getItem("kfka-prefs") || "{}");
+        const tema = prefs.tema || "sistema";
+        const escuro =
+          tema === "escuro" ||
+          (tema === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (tema !== "sistema") {
+          document.documentElement.dataset.theme = escuro ? "dark" : "light";
         }
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <noscript>
-      <p style="padding: 24px">Ative o JavaScript para usar o KFKA.</p>
-    </noscript>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+        document.documentElement.style.colorScheme = escuro ? "dark" : "light";
+        if (prefs.texto && prefs.texto !== "100") {
+          document.documentElement.style.fontSize = `${prefs.texto}%`;
+        }
+        document.documentElement.classList.toggle("texto-espacado", Boolean(prefs.espaco));
+        document.documentElement.classList.toggle("links-sublinhados", Boolean(prefs.links));
+        document.documentElement.classList.toggle(
+          "menos-movimento",
+          Boolean(prefs.menosMovimento),
+        );
+      } catch {
+        /* preferência inválida: segue o padrão do sistema */
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <noscript>
+    <p style="padding: 24px">Ative o JavaScript para usar o KFKA.</p>
+  </noscript>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const criarApp = require("./src/app");
 const ConexaoBanco = require("./src/data/ConexaoBanco");
+const { aplicarMigracoes } = require("./src/data/migracoes");
 const AdminRepository = require("./src/data/AdminRepository");
 const AlunoRepository = require("./src/data/AlunoRepository");
 const AcompanhamentoRepository = require("./src/data/AcompanhamentoRepository");
@@ -86,13 +87,38 @@ const app = criarApp({
     }
 });
 
-const servidor = app.listen(PORT, () => {
-    console.log(`Servidor KFKA iniciado em http://localhost:${PORT}`);
-    console.log(`API disponível em http://localhost:${PORT}/api`);
-});
+let servidor = null;
+
+async function iniciar() {
+    try {
+        await aplicarMigracoes(banco);
+    } catch (erro) {
+        console.warn(
+            "Aviso: não foi possível aplicar a migração de usuario.telefone:",
+            erro.message
+        );
+        console.warn(
+            "Se o perfil não salvar o telefone, rode uma vez: ALTER TABLE usuario ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);"
+        );
+    }
+
+    servidor = app.listen(PORT, () => {
+        console.log(`Servidor KFKA iniciado em http://localhost:${PORT}`);
+        console.log(`API disponível em http://localhost:${PORT}/api`);
+    });
+}
+
+iniciar();
 
 async function encerrar(sinal) {
     console.log(`\n${sinal} recebido. Encerrando o servidor...`);
+
+    if (!servidor) {
+        await banco.encerrar();
+        process.exit(0);
+        return;
+    }
+
     servidor.close(async () => {
         await banco.encerrar();
         process.exit(0);

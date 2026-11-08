@@ -1,7 +1,13 @@
-import { api } from "../dados/dados.js";
+import { api, dados } from "../dados/dados.js";
 
-// Bimestre com digitação aberta no protótipo.
+// Bimestre com digitação aberta no protótipo (usado como fallback).
 export const BIM_ATUAL = 3;
+
+// Bimestre aberto conforme os períodos carregados do servidor.
+export function bimestreAtual() {
+  const aberto = dados.bimestres.find((bimestre) => bimestre.status === "aberto");
+  return aberto?.n ?? BIM_ATUAL;
+}
 
 export const editavel = (status) => status === "rascunho" || status === "devolvido";
 

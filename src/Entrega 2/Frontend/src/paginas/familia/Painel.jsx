@@ -45,7 +45,7 @@ export default function PainelFamilia() {
     <LayoutApp papel="familia" ativo="painel">
       <PageHead
         title={`Acompanhamento de ${primeiroNome(aluno.nome)}`}
-        lead={`${turma.nome} · ${turma.turno} · ${dados.escola.nome}`}
+        lead={[turma?.nome, turma?.turno, dados.escola.nome].filter(Boolean).join(" · ")}
         actions={<SeletorAluno aluno={aluno} responsavel={responsavel} base="/familia/painel" />}
       />
 
@@ -56,7 +56,7 @@ export default function PainelFamilia() {
           </span>
           <div className="grow">
             <h2 style={{ fontSize: "1.25rem" }}>
-              Novo relatório de {api.disc(novos[0].disc).nome}
+              Novo relatório de {api.disc(novos[0].disc)?.nome || "Disciplina"}
             </h2>
             <p className="text-2">
               {novos[0].bim}º bimestre
@@ -130,7 +130,8 @@ export default function PainelFamilia() {
             <h2 style={{ fontSize: "1.25rem" }}>Disciplinas no {bim}º bimestre</h2>
             <div className="grid-4 disc-grid">
               {doBim.map((registro) => {
-                const area = api.area(api.disc(registro.disc).area);
+                const disciplina = api.disc(registro.disc);
+                const area = api.area(disciplina?.area);
                 return (
                   <Link
                     className="card card-link disc-card"
@@ -140,12 +141,12 @@ export default function PainelFamilia() {
                     <div className="row-between">
                       <span
                         className="area-dot"
-                        style={{ background: area.cor }}
+                        style={{ background: area?.cor || "#B9C8FF" }}
                         aria-hidden="true"
                       />
                       <StatusBadge status={registro.lido ? "lido" : "nao-lido"} curto />
                     </div>
-                    <b>{api.disc(registro.disc).nome}</b>
+                    <b>{disciplina?.nome || "Disciplina"}</b>
                     <span className={`nota ${tomMedia(registro.media)}`}>
                       <span className="sr-only">Média </span>
                       {fmtMedia(registro.media)}

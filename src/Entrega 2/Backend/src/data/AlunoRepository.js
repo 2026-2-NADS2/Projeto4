@@ -5,7 +5,15 @@ const CAMPOS = `
     al.nome,
     TO_CHAR(al.data_nascimento, 'YYYY-MM-DD') AS data_nascimento,
     al.matricula,
-    al.ativo
+    al.ativo,
+    (
+        SELECT ta.id_turma
+        FROM turma_aluno ta
+        WHERE ta.id_aluno = al.id_aluno
+          AND ta.ativo = TRUE
+        ORDER BY ta.id_ano_letivo DESC
+        LIMIT 1
+    ) AS id_turma
 `;
 
 class AlunoRepository {
@@ -14,13 +22,17 @@ class AlunoRepository {
     }
 
     montarAluno(linha) {
-        return new Aluno(
+        const aluno = new Aluno(
             linha.id_aluno,
             linha.nome,
             linha.data_nascimento,
             linha.matricula,
             linha.ativo
         );
+
+        aluno.idTurma = linha.id_turma ?? null;
+
+        return aluno;
     }
 
     async listarAlunos() {
@@ -53,13 +65,16 @@ class AlunoRepository {
 
     async listarPorProfessor(idProfessor) {
         const sql = `
-            SELECT ${CAMPOS}
+            SELECT DISTINCT ${CAMPOS}
             FROM aluno al
-            WHERE al.id_aluno IN (
-                SELECT DISTINCT ac.id_aluno
-                FROM vw_acompanhamento_completo ac
-                WHERE ac.id_professor = $1
-            )
+            JOIN turma_aluno ta
+                ON ta.id_aluno = al.id_aluno
+               AND ta.ativo = TRUE
+            JOIN turma_disciplina_professor v
+                ON v.id_turma = ta.id_turma
+               AND v.id_ano_letivo = ta.id_ano_letivo
+               AND v.ativo = TRUE
+            WHERE v.id_professor = $1
             ORDER BY al.nome;
         `;
 

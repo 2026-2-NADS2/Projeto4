@@ -862,6 +862,23 @@ class AdminRepository {
     // DISCIPLINAS E ÁREAS
     // =====================================================
 
+    async listarTags() {
+        const resultado = await this.consultar(
+            `
+            SELECT id_tag, nome, descricao
+            FROM tag
+            WHERE ativo = TRUE
+            ORDER BY nome;
+            `
+        );
+
+        return resultado.rows.map((linha) => ({
+            id: linha.id_tag,
+            nome: linha.nome,
+            descricao: linha.descricao
+        }));
+    }
+
     async listarAreas() {
         const resultado = await this.consultar(
             `

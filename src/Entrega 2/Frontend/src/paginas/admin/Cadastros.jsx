@@ -7,9 +7,42 @@ import Icone from "../../componentes/Icone.jsx";
 import LayoutApp from "../../componentes/LayoutApp.jsx";
 import Modal from "../../componentes/Modal.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
+import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
+import { hidratar } from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
+import { api as apiServidor } from "../../servicos/api.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
+
+const dataHojeISO = () => {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  return `${hoje.getFullYear()}-${mes}-${dia}`;
+};
+
+const paraISO = (valor) => {
+  const texto = String(valor || "").trim();
+  const br = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : "";
+};
+
+function anoLetivoAtual() {
+  const aberto = dados.bimestres.find((bimestre) => bimestre.status === "aberto");
+  return (aberto || dados.bimestres[0])?.idAnoLetivo || "";
+}
+
+function proximaMatricula() {
+  const usadas = new Set(dados.alunos.map((aluno) => aluno.ra));
+  let numero = 400 + dados.alunos.length + 1;
+  let ra = `2026-${String(numero).padStart(4, "0")}`;
+  while (usadas.has(ra)) {
+    numero += 1;
+    ra = `2026-${String(numero).padStart(4, "0")}`;
+  }
+  return ra;
+}
 
 function AbasCadastro({ ativa }) {
   const itens = [
@@ -44,6 +77,7 @@ function CabecalhoLista({ titulo, lead, children }) {
 
 export function Alunos() {
   useTitulo("Alunos");
+  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [params] = useSearchParams();
   const [versao, setVersao] = useState(0);
@@ -67,14 +101,22 @@ export function Alunos() {
     [q, turma, situacao, versao],
   );
 
-  function alternarAtivo(aluno, ativo) {
-    aluno.ativo = ativo;
-    setVersao((valor) => valor + 1);
-    avisar(
-      `${aluno.nome} ${ativo ? "ativado" : "inativado"}`,
-      "Alteração registrada na auditoria (simulação).",
-      ativo ? "ok" : "warn",
-    );
+  async function alternarAtivo(aluno, ativo) {
+    try {
+      await apiServidor(`/admin/alunos/${aluno.id}`, {
+        metodo: "PATCH",
+        corpo: { ativo },
+      });
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      avisar(
+        `${aluno.nome} ${ativo ? "ativado" : "inativado"}`,
+        "Alteração gravada no banco de dados.",
+        ativo ? "ok" : "warn",
+      );
+    } catch (erro) {
+      avisar("Não foi possível alterar a situação", erro.message, "err");
+    }
   }
 
   function limpar() {
@@ -285,13 +327,14 @@ export function AlunoForm() {
   useTitulo("Aluno");
   const { id } = useParams();
   const navegar = useNavigate();
+  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const aluno = id ? api.aluno(id) : null;
   const [versao, setVersao] = useState(0);
   const [form, setForm] = useState(() => ({
     nome: aluno?.nome || "",
     nasc: aluno?.nasc || "",
-    ra: aluno?.ra || `2026-0${400 + dados.alunos.length}`,
+    ra: aluno?.ra || proximaMatricula(),
     turma: aluno?.turma || "",
     ativo: aluno?.ativo ?? true,
     consentimento: Boolean(aluno),
@@ -300,6 +343,26 @@ export function AlunoForm() {
   const [selecionado, setSelecionado] = useState("");
   const [erros, setErros] = useState({});
 
+  // Recarrega os vínculos reais do aluno direto da API.
+  useEffect(() => {
+    if (!id) return undefined;
+
+    let ativo = true;
+
+    (async () => {
+      try {
+        const lista = await apiServidor(`/admin/alunos/${id}/responsaveis`);
+        if (ativo) setRespIds(lista.map((item) => String(item.id)));
+      } catch {
+        /* mantém a lista local */
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, [id]);
+
   if (id && !aluno) return <Navigate to="/admin/alunos" replace />;
 
   function atualizar(campo, valor) {
@@ -307,19 +370,47 @@ export function AlunoForm() {
     setErros((atual) => ({ ...atual, [campo]: "" }));
   }
 
-  function vincular() {
+  async function vincular() {
     if (!selecionado) return;
+
+    if (aluno) {
+      try {
+        await apiServidor(`/admin/alunos/${aluno.id}/responsaveis`, {
+          metodo: "POST",
+          corpo: { idResponsavel: Number(selecionado) },
+        });
+      } catch (erro) {
+        avisar("Não foi possível vincular", erro.message, "err");
+        return;
+      }
+      await hidratar(usuario);
+    }
+
     setRespIds((atuais) => (atuais.includes(selecionado) ? atuais : [...atuais, selecionado]));
     setSelecionado("");
     setVersao((valor) => valor + 1);
+    avisar("Responsável vinculado", "Agora ele pode ver os relatórios publicados.", "ok");
   }
 
-  function remover(idResp) {
+  async function remover(idResp) {
+    if (aluno) {
+      try {
+        await apiServidor(`/admin/alunos/${aluno.id}/responsaveis/${idResp}`, {
+          metodo: "DELETE",
+        });
+      } catch (erro) {
+        avisar("Não foi possível remover o vínculo", erro.message, "err");
+        return;
+      }
+      await hidratar(usuario);
+    }
+
     setRespIds((atuais) => atuais.filter((item) => item !== idResp));
     setVersao((valor) => valor + 1);
+    avisar("Vínculo removido", "O responsável não vê mais os relatórios deste aluno.", "warn");
   }
 
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
     const novosErros = {};
     if (!form.nome.trim()) novosErros.nome = "Informe o nome completo.";
@@ -331,55 +422,83 @@ export function AlunoForm() {
       return;
     }
 
-    let registro = aluno;
-    if (!registro) {
-      registro = {
-        id: `a${Date.now()}`,
-        nome: form.nome.trim(),
-        ra: form.ra,
-        turma: form.turma,
-        nasc: form.nasc,
-        ativo: form.ativo,
-        cor: "#9FE3D0",
-      };
-      dados.alunos.push(registro);
-      dados.auditoria.unshift({
-        quando: "agora",
-        quem: "Marina Rocha",
-        acao: "Criou aluno",
-        registro: `${registro.nome} · ${api.turma(registro.turma)?.nome}`,
-        de: "—",
-        para: "Ativo",
-      });
-    } else {
-      Object.assign(registro, {
-        nome: form.nome.trim(),
-        nasc: form.nasc,
-        turma: form.turma,
-        ativo: form.ativo,
-      });
+    const nascISO = paraISO(form.nasc);
+    if (!nascISO) {
+      setErros((atual) => ({ ...atual, nasc: "Use o formato dd/mm/aaaa." }));
+      avisar("Data inválida", "Informe a data de nascimento no formato dd/mm/aaaa.", "err");
+      return;
     }
 
-    dados.responsaveis.forEach((responsavel) => {
-      const tinha = responsavel.alunos.includes(registro.id);
-      const deveTer = respIds.includes(responsavel.id);
-      if (deveTer && !tinha) responsavel.alunos.push(registro.id);
-      if (!deveTer && tinha) responsavel.alunos = responsavel.alunos.filter((x) => x !== registro.id);
-    });
+    const idTurma = Number(form.turma);
+    const idAnoLetivo = Number(anoLetivoAtual());
+    if (!idAnoLetivo) {
+      avisar(
+        "Ano letivo não encontrado",
+        "Recarregue a página para atualizar os períodos letivos.",
+        "err",
+      );
+      return;
+    }
 
-    avisar(
-      aluno ? "Aluno atualizado" : "Aluno cadastrado",
-      "Os dados foram salvos nesta sessão do navegador.",
-      "ok",
-    );
-    navegar("/admin/alunos");
+    const corpo = {
+      nome: form.nome.trim(),
+      dataNascimento: nascISO,
+      matricula: form.ra,
+      ativo: form.ativo,
+    };
+
+    try {
+      if (!aluno) {
+        const criado = await apiServidor("/admin/alunos", { metodo: "POST", corpo });
+        await apiServidor(`/admin/alunos/${criado.id}/matriculas`, {
+          metodo: "POST",
+          corpo: { idTurma, idAnoLetivo, dataInicio: dataHojeISO() },
+        });
+        for (const idResp of respIds) {
+          await apiServidor(`/admin/alunos/${criado.id}/responsaveis`, {
+            metodo: "POST",
+            corpo: { idResponsavel: Number(idResp) },
+          });
+        }
+      } else {
+        await apiServidor(`/admin/alunos/${aluno.id}`, { metodo: "PUT", corpo });
+        if (String(form.turma) !== String(aluno.turma)) {
+          const matriculas = await apiServidor(`/admin/alunos/${aluno.id}/matriculas`);
+          for (const matricula of matriculas.filter((item) => item.ativo)) {
+            await apiServidor(
+              `/admin/alunos/${aluno.id}/matriculas/${matricula.idTurma}/${matricula.idAnoLetivo}`,
+              { metodo: "DELETE" },
+            );
+          }
+          await apiServidor(`/admin/alunos/${aluno.id}/matriculas`, {
+            metodo: "POST",
+            corpo: { idTurma, idAnoLetivo, dataInicio: dataHojeISO() },
+          });
+        }
+      }
+
+      await hidratar(usuario);
+      avisar(
+        aluno ? "Aluno atualizado" : "Aluno cadastrado",
+        "Os dados foram gravados no banco de dados.",
+        "ok",
+      );
+      navegar("/admin/alunos");
+    } catch (erro) {
+      avisar("Não foi possível salvar o aluno", erro.message, "err");
+    }
   }
 
-  function inativar() {
+  async function inativar() {
     if (!aluno) return;
-    aluno.ativo = false;
-    avisar("Aluno inativado", "Relatórios já publicados continuam no histórico.", "warn");
-    navegar("/admin/alunos");
+    try {
+      await apiServidor(`/admin/alunos/${aluno.id}`, { metodo: "DELETE" });
+      await hidratar(usuario);
+      avisar("Aluno inativado", "Relatórios já publicados continuam no histórico.", "warn");
+      navegar("/admin/alunos");
+    } catch (erro) {
+      avisar("Não foi possível inativar o aluno", erro.message, "err");
+    }
   }
 
   const responsaveis = respIds.map((idResp) => api.resp(idResp)).filter(Boolean);
@@ -624,56 +743,88 @@ export function ProfessorForm() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { avisar } = useAviso();
+  const { usuario } = useAutenticacao();
   const professor = id ? api.prof(id) : null;
   const [form, setForm] = useState(() => ({
     nome: professor?.nome || "",
     email: professor?.email || "",
-    tel: professor?.tel || "",
-    disc: professor?.disc || [],
+    matricula: professor?.matricula || "",
+    senha: "",
     ativo: professor?.ativo ?? true,
   }));
   const [erros, setErros] = useState({});
+  const [enviando, setEnviando] = useState(false);
 
   if (id && !professor) return <Navigate to="/admin/professores" replace />;
 
   const vinculos = professor ? api.vinculosDoProf(professor.id) : [];
 
-  function alternarDisciplina(idDisc) {
-    setForm((atual) => ({
-      ...atual,
-      disc: atual.disc.includes(idDisc)
-        ? atual.disc.filter((item) => item !== idDisc)
-        : [...atual.disc, idDisc],
-    }));
-  }
-
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
     const novosErros = {};
     if (!form.nome.trim()) novosErros.nome = "Informe o nome completo.";
     if (!form.email.includes("@")) novosErros.email = "Informe um e-mail válido.";
-    if (!form.disc.length) novosErros.disc = "Selecione ao menos uma disciplina.";
+    if (!form.matricula.trim()) novosErros.matricula = "Informe a matrícula.";
+    if (!professor && form.senha.length < 8) {
+      novosErros.senha = "A senha inicial deve ter ao menos 8 caracteres.";
+    }
+    if (professor && form.senha && form.senha.length < 8) {
+      novosErros.senha = "A nova senha deve ter ao menos 8 caracteres.";
+    }
     setErros(novosErros);
     if (Object.keys(novosErros).length) {
       avisar("Revise os campos destacados", "Há informações obrigatórias faltando.", "err");
       return;
     }
 
-    if (professor) {
-      Object.assign(professor, form);
-    } else {
-      dados.professores.push({
-        id: `p${Date.now()}`,
-        nome: form.nome.trim(),
-        email: form.email.trim(),
-        tel: form.tel,
-        disc: form.disc,
-        ativo: form.ativo,
-        cor: "#74C0FC",
-      });
+    setEnviando(true);
+
+    try {
+      if (professor) {
+        const corpo = {
+          nome: form.nome.trim(),
+          email: form.email.trim(),
+          matricula: form.matricula.trim(),
+          ativo: form.ativo,
+        };
+        if (form.senha) corpo.senha = form.senha;
+
+        await apiServidor(`/admin/professores/${professor.id}`, {
+          metodo: "PUT",
+          corpo,
+        });
+        avisar("Professor atualizado", "Os dados foram salvos no banco.", "ok");
+      } else {
+        const criado = await apiServidor("/admin/professores", {
+          metodo: "POST",
+          corpo: {
+            nome: form.nome.trim(),
+            email: form.email.trim(),
+            matricula: form.matricula.trim(),
+            senha: form.senha,
+            ativo: form.ativo,
+          },
+        });
+
+        // A criação sempre nasce ativa; o DELETE desativa a conta.
+        if (!form.ativo) {
+          await apiServidor(`/admin/professores/${criado.id}`, { metodo: "DELETE" });
+        }
+
+        avisar(
+          "Professor cadastrado",
+          "A conta já pode entrar com o e-mail e a senha informados.",
+          "ok",
+        );
+      }
+
+      if (usuario) await hidratar(usuario);
+      navegar("/admin/professores");
+    } catch (erro) {
+      avisar("Não foi possível salvar o professor", erro.message, "err");
+    } finally {
+      setEnviando(false);
     }
-    avisar("Professor salvo", "Os dados foram salvos nesta sessão.", "ok");
-    navegar("/admin/professores");
   }
 
   return (
@@ -712,41 +863,35 @@ export function ProfessorForm() {
                 aoMudar={(valor) => setForm((atual) => ({ ...atual, email: valor }))}
               />
               <Campo
-                label="Telefone"
-                valor={form.tel}
-                placeholder="(11) 90000-0000"
-                aoMudar={(valor) => setForm((atual) => ({ ...atual, tel: valor }))}
+                label="Matrícula"
+                valor={form.matricula}
+                obrigatorio
+                placeholder="Ex.: PROF-2026-01"
+                erro={erros.matricula}
+                aoMudar={(valor) => setForm((atual) => ({ ...atual, matricula: valor }))}
               />
             </div>
           </section>
 
           <section className="form-section">
             <header>
-              <h3>Disciplinas que leciona</h3>
-              <p>Selecione uma ou mais.</p>
-            </header>
-            <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-              <legend className="sr-only">Disciplinas</legend>
-              <div className="tag-picker">
-                {dados.disciplinas.map((disciplina) => (
-                  <label className="tag-option" key={disciplina.id}>
-                    <input
-                      type="checkbox"
-                      checked={form.disc.includes(disciplina.id)}
-                      onChange={() => alternarDisciplina(disciplina.id)}
-                    />
-                    <span>{disciplina.nome}</span>
-                  </label>
-                ))}
-              </div>
-              {erros.disc && <span className="error-msg">{erros.disc}</span>}
-            </fieldset>
-          </section>
-
-          <section className="form-section">
-            <header>
               <h3>Acesso</h3>
             </header>
+            <div className="form-grid">
+              <Campo
+                label={professor ? "Nova senha" : "Senha inicial"}
+                tipo="password"
+                valor={form.senha}
+                obrigatorio={!professor}
+                erro={erros.senha}
+                dica={
+                  professor
+                    ? "Deixe em branco para manter a senha atual."
+                    : "Mínimo de 8 caracteres. O professor usará esta senha para entrar."
+                }
+                aoMudar={(valor) => setForm((atual) => ({ ...atual, senha: valor }))}
+              />
+            </div>
             <label className="switch">
               <input
                 type="checkbox"
@@ -756,20 +901,20 @@ export function ProfessorForm() {
               <span className="track" aria-hidden="true" />
               <span>Professor ativo</span>
             </label>
-            {!professor && (
-              <div className="alert info">
-                <Icone nome="mail" />
-                <div>Ao salvar, um convite de primeiro acesso seria enviado ao e-mail informado (simulação).</div>
+            <div className="alert info">
+              <Icone nome="link" />
+              <div>
+                Turmas e disciplinas são associadas na tela de Vínculos, depois que a conta existir.
               </div>
-            )}
+            </div>
           </section>
 
           <div className="form-actions">
             <Link className="btn btn-secondary" to="/admin/professores">
               Cancelar
             </Link>
-            <button className="btn btn-primary" type="submit">
-              <Icone nome="check" /> Salvar professor
+            <button className="btn btn-primary" type="submit" disabled={enviando}>
+              <Icone nome="check" /> {enviando ? "Salvando…" : "Salvar professor"}
             </button>
           </div>
         </form>
@@ -893,16 +1038,18 @@ export function ResponsavelForm() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { avisar } = useAviso();
+  const { usuario } = useAutenticacao();
   const responsavel = id ? api.resp(id) : null;
   const [form, setForm] = useState(() => ({
     nome: responsavel?.nome || "",
     email: responsavel?.email || "",
     tel: responsavel?.tel || "",
+    senha: "",
     parentesco: responsavel?.parentesco || "",
     alunos: responsavel?.alunos || [],
-    consentimento: responsavel?.consentimento && responsavel.consentimento !== "—",
   }));
   const [erros, setErros] = useState({});
+  const [enviando, setEnviando] = useState(false);
 
   if (id && !responsavel) return <Navigate to="/admin/responsaveis" replace />;
 
@@ -915,41 +1062,101 @@ export function ResponsavelForm() {
     }));
   }
 
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
     const novosErros = {};
     if (!form.nome.trim()) novosErros.nome = "Informe o nome completo.";
     if (!form.email.includes("@")) novosErros.email = "Informe um e-mail válido.";
     if (!form.parentesco) novosErros.parentesco = "Selecione o parentesco.";
+    if (!responsavel && form.senha.length < 8) {
+      novosErros.senha = "A senha inicial deve ter ao menos 8 caracteres.";
+    }
+    if (responsavel && form.senha && form.senha.length < 8) {
+      novosErros.senha = "A nova senha deve ter ao menos 8 caracteres.";
+    }
     setErros(novosErros);
     if (Object.keys(novosErros).length) {
       avisar("Revise os campos destacados", "Há informações obrigatórias faltando.", "err");
       return;
     }
 
-    if (responsavel) {
-      Object.assign(responsavel, {
+    setEnviando(true);
+
+    try {
+      let idResponsavel = responsavel?.id;
+
+      const corpo = {
         nome: form.nome.trim(),
         email: form.email.trim(),
-        tel: form.tel,
-        parentesco: form.parentesco,
-        alunos: form.alunos,
-        consentimento: form.consentimento ? "02/02/2026" : "—",
-      });
-    } else {
-      dados.responsaveis.push({
-        id: `r${Date.now()}`,
-        nome: form.nome.trim(),
-        email: form.email.trim(),
-        tel: form.tel,
-        parentesco: form.parentesco,
-        alunos: form.alunos,
-        consentimento: form.consentimento ? "02/02/2026" : "—",
-        ativo: true,
-      });
+        telefone: form.tel.trim(),
+      };
+
+      if (responsavel) {
+        if (form.senha) corpo.senha = form.senha;
+        await apiServidor(`/admin/responsaveis/${idResponsavel}`, {
+          metodo: "PUT",
+          corpo,
+        });
+      } else {
+        corpo.senha = form.senha;
+        const criado = await apiServidor("/admin/responsaveis", {
+          metodo: "POST",
+          corpo,
+        });
+        idResponsavel = criado.id;
+      }
+
+      // O POST de vínculo é um upsert: atualiza também o parentesco.
+      const atuais = responsavel?.alunos || [];
+      const remover = atuais.filter((idAluno) => !form.alunos.includes(idAluno));
+      const falhas = [];
+
+      for (const idAluno of form.alunos) {
+        try {
+          await apiServidor(`/admin/alunos/${idAluno}/responsaveis`, {
+            metodo: "POST",
+            corpo: {
+              idResponsavel: Number(idResponsavel),
+              tipoRelacao: form.parentesco,
+            },
+          });
+        } catch (erro) {
+          falhas.push(erro.message);
+        }
+      }
+
+      for (const idAluno of remover) {
+        try {
+          await apiServidor(`/admin/alunos/${idAluno}/responsaveis/${idResponsavel}`, {
+            metodo: "DELETE",
+          });
+        } catch (erro) {
+          falhas.push(erro.message);
+        }
+      }
+
+      if (usuario) await hidratar(usuario);
+
+      if (falhas.length) {
+        avisar(
+          "Responsável salvo com pendências",
+          `Não foi possível atualizar ${falhas.length} vínculo(s): ${falhas[0]}`,
+          "warn",
+        );
+      } else {
+        avisar(
+          responsavel ? "Responsável atualizado" : "Responsável cadastrado",
+          "Os dados e vínculos foram salvos no banco.",
+          "ok",
+        );
+      }
+
+      navegar("/admin/responsaveis");
+    } catch (erro) {
+      avisar("Não foi possível salvar o responsável", erro.message, "err");
+    } finally {
+      setEnviando(false);
     }
-    avisar("Responsável salvo", "Vínculos atualizados nesta sessão.", "ok");
-    navegar("/admin/responsaveis");
   }
 
   return (
@@ -989,6 +1196,19 @@ export function ResponsavelForm() {
               label="Telefone"
               valor={form.tel}
               aoMudar={(valor) => setForm((atual) => ({ ...atual, tel: valor }))}
+            />
+            <Campo
+              label={responsavel ? "Nova senha" : "Senha inicial"}
+              tipo="password"
+              valor={form.senha}
+              obrigatorio={!responsavel}
+              erro={erros.senha}
+              dica={
+                responsavel
+                  ? "Deixe em branco para manter a senha atual."
+                  : "Mínimo de 8 caracteres. O responsável usará esta senha para entrar."
+              }
+              aoMudar={(valor) => setForm((atual) => ({ ...atual, senha: valor }))}
             />
           </div>
         </section>
@@ -1035,24 +1255,21 @@ export function ResponsavelForm() {
               aoMudar={(valor) => setForm((atual) => ({ ...atual, parentesco: valor }))}
             />
           </div>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.consentimento}
-              onChange={(evento) =>
-                setForm((atual) => ({ ...atual, consentimento: evento.target.checked }))
-              }
-            />
-            Consentimento LGPD registrado
-          </label>
+          <div className="alert neutral">
+            <Icone nome="shield" />
+            <div>
+              Ao vincular, a coordenação autoriza este responsável a ver os relatórios
+              publicados dos alunos marcados (LGPD).
+            </div>
+          </div>
         </section>
 
         <div className="form-actions">
           <Link className="btn btn-secondary" to="/admin/responsaveis">
             Cancelar
           </Link>
-          <button className="btn btn-primary" type="submit">
-            <Icone nome="check" /> Salvar responsável
+          <button className="btn btn-primary" type="submit" disabled={enviando}>
+            <Icone nome="check" /> {enviando ? "Salvando…" : "Salvar responsável"}
           </button>
         </div>
       </form>

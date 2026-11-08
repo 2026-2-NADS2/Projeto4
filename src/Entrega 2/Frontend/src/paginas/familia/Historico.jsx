@@ -65,7 +65,7 @@ export default function HistoricoFamilia() {
                       <span className="row" style={{ gap: 8 }}>
                         <span
                           className="area-dot"
-                          style={{ background: area.cor }}
+                          style={{ background: area?.cor || "#B9C8FF" }}
                           aria-hidden="true"
                         />
                         {disciplina.nome}

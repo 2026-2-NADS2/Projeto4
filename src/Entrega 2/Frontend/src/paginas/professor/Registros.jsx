@@ -17,13 +17,15 @@ import PageHead from "../../componentes/PageHead.jsx";
 import StatusBadge from "../../componentes/StatusBadge.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
+import { hidratar } from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
+import { api as apiServidor } from "../../servicos/api.js";
 import { fmtMedia } from "../../utilitarios/formatadores.js";
-import { BIM_ATUAL, editavel } from "../../utilitarios/professor.js";
+import { bimestreAtual, editavel } from "../../utilitarios/professor.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 const ABAS = [
-  ["", "Todos (3º bim)"],
+  ["", "Todos (bimestre atual)"],
   ["rascunho", "Rascunhos"],
   ["enviado", "Enviados"],
   ["revisao", "Em revisão"],
@@ -128,7 +130,7 @@ export function Registros() {
 
   const base = api
     .relsFiltrados({ prof: profId })
-    .filter((registro) => registro.bim === BIM_ATUAL || status);
+    .filter((registro) => registro.bim === bimestreAtual() || status);
   const lista = status ? base.filter((registro) => registro.status === status) : base;
   const contar = (valor) => api.relsFiltrados({ prof: profId, status: valor }).length;
 
@@ -348,7 +350,7 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
   );
   const [disc, setDisc] = useState(registro?.disc || params.get("disc") || "");
   const [bim] = useState(
-    registro?.bim || Number(params.get("bim")) || BIM_ATUAL,
+    registro?.bim || Number(params.get("bim")) || bimestreAtual(),
   );
   const [media, setMedia] = useState(
     registro ? (registro.media == null ? "" : fmtMedia(registro.media)) : "",
@@ -357,6 +359,7 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
   const [desc, setDesc] = useState(registro?.desc || "");
   const [erros, setErros] = useState({});
   const [envio, setEnvio] = useState(null);
+  const [salvando, setSalvando] = useState(false);
 
   const alunoSelecionado = alunoId ? api.aluno(alunoId) : null;
   const turmaSelecionada = alunoSelecionado ? api.turma(alunoSelecionado.turma) : null;
@@ -440,27 +443,54 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
     return existente && existente.id !== registro?.id ? existente : null;
   }
 
-  function coletar() {
+  async function persistir(rascunho) {
+    const aluno = api.aluno(alunoId);
+    const vinculo = vinculos.find(
+      (item) => item.turma === aluno?.turma && item.disc === disc,
+    );
+    const bimestre = dados.bimestres.find((item) => item.n === bim);
     const numero = media.trim() === "" ? null : Number(media.replace(",", "."));
-    return {
-      id: registro?.id,
-      aluno: alunoId,
-      disc,
-      turma: alunoSelecionado ? alunoSelecionado.turma : "",
-      prof: profId,
-      bim,
-      ano: 2026,
+
+    if (!vinculo) {
+      throw new Error("Não há vínculo do professor com esta turma e disciplina.");
+    }
+
+    if (!bimestre?.id) {
+      throw new Error("Bimestre inválido para lançamento.");
+    }
+
+    const corpo = {
+      descricao: desc.trim(),
       media: Number.isNaN(numero) ? null : numero,
-      tags,
-      desc: desc.trim(),
+      idTags: tags.map(Number),
+      rascunho,
     };
+
+    if (registro) {
+      await apiServidor(`/acompanhamentos/${registro.id}`, {
+        metodo: "PATCH",
+        corpo,
+      });
+      await hidratar(usuario);
+      return registro.id;
+    }
+
+    const criado = await apiServidor("/acompanhamentos", {
+      metodo: "POST",
+      corpo: {
+        idAluno: Number(alunoId),
+        idVinculo: Number(vinculo.id),
+        idBimestre: Number(bimestre.id),
+        ...corpo,
+      },
+    });
+
+    await hidratar(usuario);
+    return criado.id;
   }
 
-  function salvar(status) {
-    return api.salvarRegistro({ ...coletar(), status });
-  }
-
-  function salvarRascunho() {
+  async function salvarRascunho() {
+    if (salvando) return;
     if (!validar(false)) return;
     if (duplicado()) {
       avisar(
@@ -470,22 +500,22 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
       );
       return;
     }
-    const salvo = salvar(registro ? registro.status : "rascunho");
-    if (registro) {
-      salvo.historico.push({
-        quem: usuario?.nome || "Professor",
-        papel: "Professor",
-        quando: "agora",
-        acao: "Rascunho atualizado",
-        de: null,
-        para: salvo.status,
-      });
+
+    setSalvando(true);
+
+    try {
+      const id = await persistir(true);
+      avisar(
+        "Rascunho salvo",
+        "As informações já estão gravadas no banco de dados.",
+        "ok",
+      );
+      navigate(`/professor/registro/${id}/editar`, { replace: !registro });
+    } catch (erro) {
+      avisar("Não foi possível salvar o rascunho", erro.message, "err");
+    } finally {
+      setSalvando(false);
     }
-    avisar(
-      "Rascunho salvo nesta sessão",
-      "Fica disponível enquanto a página estiver aberta.",
-    );
-    navigate(`/professor/registro/${salvo.id}/editar`, { replace: !registro });
   }
 
   function conferirDuplicado() {
@@ -499,24 +529,63 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
     return true;
   }
 
-  function previsualizar() {
+  async function previsualizar() {
+    if (salvando) return;
     if (!validar(true) || conferirDuplicado()) return;
-    const salvo = salvar(registro ? registro.status : "rascunho");
-    navigate(`/professor/registro/${salvo.id}/previa`);
+
+    setSalvando(true);
+
+    try {
+      const id = await persistir(true);
+      navigate(`/professor/registro/${id}/previa`);
+    } catch (erro) {
+      avisar("Não foi possível salvar o registro", erro.message, "err");
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function enviar(evento) {
+  async function enviar(evento) {
     evento.preventDefault();
+    if (salvando) return;
     if (!validar(true) || conferirDuplicado()) return;
-    setEnvio(salvar(registro ? registro.status : "rascunho"));
+
+    setSalvando(true);
+
+    try {
+      const id = await persistir(true);
+      const salvo = api.rel(id);
+      setEnvio(salvo || { id, aluno: alunoId, disc, bim, tags });
+    } catch (erro) {
+      avisar("Não foi possível salvar o registro", erro.message, "err");
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function confirmarEnvio() {
-    if (!envio) return;
-    api.mudarStatus(envio.id, "enviado", usuario?.nome || "Professor", "Professor");
-    setEnvio(null);
-    avisar("Enviado para revisão", "A coordenação foi avisada (simulação).");
-    navigate(`/professor/registros/${envio.id}`);
+  async function confirmarEnvio() {
+    if (!envio || salvando) return;
+
+    setSalvando(true);
+
+    try {
+      await apiServidor(`/acompanhamentos/${envio.id}`, {
+        metodo: "PATCH",
+        corpo: { status: "enviado" },
+      });
+      await hidratar(usuario);
+      setEnvio(null);
+      avisar(
+        "Enviado para revisão",
+        "A coordenação poderá revisar e publicar o registro.",
+        "ok",
+      );
+      navigate(`/professor/registros/${envio.id}`);
+    } catch (erro) {
+      avisar("Não foi possível enviar para revisão", erro.message, "err");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   const titulo = registro
@@ -601,7 +670,7 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
                 ])}
                 obrigatorio
                 disabled
-                dica="Somente o 3º bimestre está aberto para digitação."
+                dica={`Somente o ${bimestreAtual()}º bimestre está aberto para digitação.`}
               />
             </div>
           </fieldset>
@@ -706,13 +775,23 @@ function FormularioAcompanhamento({ registro, profId, usuario }) {
               Cancelar
             </Link>
             <span className="grow" />
-            <button type="button" className="btn btn-secondary" onClick={salvarRascunho}>
-              <Icone nome="save" /> Salvar rascunho
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={salvarRascunho}
+              disabled={salvando}
+            >
+              <Icone nome="save" /> {salvando ? "Salvando…" : "Salvar rascunho"}
             </button>
-            <button type="button" className="btn btn-secondary" onClick={previsualizar}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={previsualizar}
+              disabled={salvando}
+            >
               <Icone nome="eye" /> Pré-visualizar
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary" disabled={salvando}>
               <Icone nome="send" />{" "}
               {registro && registro.status === "devolvido"
                 ? "Reenviar para revisão"
@@ -814,6 +893,7 @@ export function RegistroPrevia() {
   const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [envio, setEnvio] = useState(null);
+  const [salvando, setSalvando] = useState(false);
   const registro = api.rel(id);
   const profId = usuario?.profId || "p1";
 
@@ -831,11 +911,29 @@ export function RegistroPrevia() {
     setEnvio(registro);
   }
 
-  function confirmarEnvio() {
-    api.mudarStatus(registro.id, "enviado", usuario?.nome || "Professor", "Professor");
-    setEnvio(null);
-    avisar("Enviado para revisão", "A coordenação foi avisada (simulação).");
-    navigate(`/professor/registros/${registro.id}`);
+  async function confirmarEnvio() {
+    if (salvando) return;
+
+    setSalvando(true);
+
+    try {
+      await apiServidor(`/acompanhamentos/${registro.id}`, {
+        metodo: "PATCH",
+        corpo: { status: "enviado" },
+      });
+      await hidratar(usuario);
+      setEnvio(null);
+      avisar(
+        "Enviado para revisão",
+        "A coordenação poderá revisar e publicar o registro.",
+        "ok",
+      );
+      navigate(`/professor/registros/${registro.id}`);
+    } catch (erro) {
+      avisar("Não foi possível enviar para revisão", erro.message, "err");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (

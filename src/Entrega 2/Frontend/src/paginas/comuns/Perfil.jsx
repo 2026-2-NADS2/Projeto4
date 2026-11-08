@@ -8,6 +8,7 @@ import PageHead from "../../componentes/PageHead.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
+import { api as apiServidor } from "../../servicos/api.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 const VOLTA = {
@@ -24,7 +25,7 @@ const PERFIL_ROTULO = {
 
 export default function Perfil({ papel }) {
   useTitulo("Meu perfil");
-  const { usuario } = useAutenticacao();
+  const { usuario, atualizarSessao } = useAutenticacao();
   const { avisar } = useAviso();
 
   const professor =
@@ -47,26 +48,65 @@ export default function Perfil({ papel }) {
   const [form, setForm] = useState({
     nome: usuario?.nome || "",
     email: usuario?.email || "",
-    telefone: professor?.tel || responsavel?.tel || "(11) 99999-0000",
+    telefone: usuario?.telefone || responsavel?.tel || professor?.tel || "",
     cargo: usuario?.sub || PERFIL_ROTULO[papel],
   });
   const [prefs, setPrefs] = useState({ revisao: true, devolvidos: true, resumo: false });
+  const [enviando, setEnviando] = useState(false);
 
   const voltar = VOLTA[papel];
 
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
-    if (professor) {
-      professor.nome = form.nome;
-      professor.email = form.email;
-      professor.tel = form.telefone;
+
+    if (!form.nome.trim() || !form.email.includes("@")) {
+      avisar(
+        "Revise os campos destacados",
+        "Nome e e-mail são obrigatórios.",
+        "err",
+      );
+      return;
     }
-    if (responsavel) {
-      responsavel.nome = form.nome;
-      responsavel.email = form.email;
-      responsavel.tel = form.telefone;
+
+    setEnviando(true);
+
+    try {
+      const { usuario: atualizado } = await apiServidor("/auth/perfil", {
+        metodo: "PUT",
+        corpo: {
+          nome: form.nome.trim(),
+          email: form.email.trim(),
+          telefone: form.telefone.trim(),
+        },
+      });
+
+      atualizarSessao(atualizado);
+
+      // Mantém os dados em memória coerentes até a próxima hidratação.
+      if (professor) {
+        professor.nome = atualizado.nome;
+        professor.email = atualizado.email;
+        professor.tel = atualizado.telefone || "";
+      }
+      if (responsavel) {
+        responsavel.nome = atualizado.nome;
+        responsavel.email = atualizado.email;
+        responsavel.tel = atualizado.telefone || "";
+      }
+
+      setForm((atual) => ({
+        ...atual,
+        nome: atualizado.nome,
+        email: atualizado.email,
+        telefone: atualizado.telefone || "",
+      }));
+
+      avisar("Perfil atualizado", "Seus dados foram salvos no banco.", "ok");
+    } catch (erro) {
+      avisar("Não foi possível salvar o perfil", erro.message, "err");
+    } finally {
+      setEnviando(false);
     }
-    avisar("Perfil atualizado", "Seus dados foram salvos neste navegador.", "ok");
   }
 
   const vinculos = professor ? api.vinculosDoProf(professor.id) : [];
@@ -127,8 +167,8 @@ export default function Perfil({ papel }) {
               />
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn btn-primary">
-                <Icone nome="check" /> Salvar alterações
+              <button type="submit" className="btn btn-primary" disabled={enviando}>
+                <Icone nome="check" /> {enviando ? "Salvando…" : "Salvar alterações"}
               </button>
             </div>
           </form>

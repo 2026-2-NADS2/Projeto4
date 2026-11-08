@@ -12,7 +12,8 @@ class AlunoService {
             nome: aluno.nome,
             dataNascimento: aluno.dataNascimento,
             matricula: aluno.matricula,
-            ativo: aluno.ativo
+            ativo: aluno.ativo,
+            idTurma: aluno.idTurma ?? null
         };
     }
 

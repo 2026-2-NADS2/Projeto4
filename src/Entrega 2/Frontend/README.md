@@ -89,10 +89,6 @@ src/
 └── utilitarios/             # Formatadores, hooks e regras de família/professor
 ```
 
-O protótipo original em HTML/CSS/JS está arquivado em
-[`legado/prototipo-entrega2/`](legado/prototipo-entrega2/) apenas como referência.
-Ele não faz parte do build e não deve ser editado.
-
 ---
 
 ## Rotas

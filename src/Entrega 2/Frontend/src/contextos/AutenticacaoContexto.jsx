@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { api, dados } from "../dados/dados.js";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { api, getToken, setToken } from "../servicos/api";
+import { hidratar } from "../dados/carregarDados";
 
 const CHAVE = "kfka-sessao";
 
@@ -45,6 +46,22 @@ export class ErroAutenticacao extends Error {
   }
 }
 
+// O backend usa códigos com "_"; as telas usam os mesmos códigos do protótipo.
+const CODIGOS_API = {
+  sem_conta: "sem-conta",
+  outro_perfil: "outro-perfil",
+  email_em_uso: "email",
+};
+
+function paraErroAutenticacao(erro, perfil) {
+  if (erro instanceof ErroAutenticacao) return erro;
+
+  return new ErroAutenticacao(CODIGOS_API[erro?.codigo] || erro?.codigo || "erro", {
+    perfil: erro?.detalhes?.perfil || perfil,
+    mensagem: erro?.message,
+  });
+}
+
 function lerSessao() {
   try {
     const daAba = sessionStorage.getItem(CHAVE);
@@ -77,31 +94,21 @@ function limparSessaoArmazenada() {
   }
 }
 
-// Completa a sessão com o vínculo do mock (professor/responsável) usado pelas telas.
-function enriquecerSessao(conta) {
-  const sessao = {
-    perfil: conta.perfil,
-    nome: conta.nome,
-    email: conta.email,
-    sub: conta.sub,
-    cor: conta.cor,
+// Converte o usuário devolvido pela API no formato de sessão usado pelas telas.
+function enriquecerSessao(usuario) {
+  const meta = PERFIS[usuario.perfil] || {};
+
+  return {
+    idUsuario: usuario.idUsuario ?? null,
+    perfil: usuario.perfil,
+    nome: usuario.nome,
+    email: usuario.email,
+    sub: meta.sub || "",
+    cor: meta.cor || "#5FD4A8",
+    telefone: usuario.telefone || "",
+    profId: usuario.professorId == null ? null : String(usuario.professorId),
+    respId: usuario.responsavelId == null ? null : String(usuario.responsavelId),
   };
-
-  if (conta.perfil === "professor") {
-    const professor = dados.professores.find(
-      (item) => item.email?.toLowerCase() === conta.email.toLowerCase(),
-    );
-    sessao.profId = professor?.id || "p1";
-  }
-
-  if (conta.perfil === "responsavel") {
-    const responsavel = dados.responsaveis.find(
-      (item) => item.email?.toLowerCase() === conta.email.toLowerCase(),
-    );
-    sessao.respId = responsavel?.id || "r1";
-  }
-
-  return sessao;
 }
 
 const AutenticacaoContexto = createContext(null);
@@ -109,43 +116,93 @@ const AutenticacaoContexto = createContext(null);
 export function AutenticacaoProvider({ children }) {
   const [usuario, setUsuario] = useState(lerSessao);
 
-  const entrar = useCallback(async ({ perfil, email, senha, lembrar = true }) => {
-    // Etapa funcional: esta chamada vira POST /auth/login na API Express.
-    const resultado = api.entrar(perfil, email, senha);
+  // Restaura a sessão do token salvo e recarrega os dados do banco.
+  useEffect(() => {
+    const token = getToken();
 
-    if (resultado.erro) {
-      throw new ErroAutenticacao(resultado.erro, { perfil: resultado.perfil });
+    if (!token) {
+      limparSessaoArmazenada();
+      setUsuario(null);
+      return;
     }
 
-    const sessao = enriquecerSessao(resultado.conta);
+    let ativo = true;
+
+    (async () => {
+      try {
+        const { usuario: dadosUsuario } = await api("/auth/me");
+        const sessao = enriquecerSessao(dadosUsuario);
+        await hidratar(sessao);
+        if (ativo) setUsuario(sessao);
+      } catch {
+        setToken(null);
+        limparSessaoArmazenada();
+        if (ativo) setUsuario(null);
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const entrar = useCallback(async ({ perfil, email, senha, lembrar = true }) => {
+    try {
+      const { token, usuario: dadosUsuario } = await api("/auth/login", {
+        metodo: "POST",
+        corpo: { email, senha, perfil },
+      });
+
+      setToken(token);
+      const sessao = enriquecerSessao(dadosUsuario);
+      await hidratar(sessao);
+      persistirSessao(sessao, lembrar);
+      setUsuario(sessao);
+      return sessao;
+    } catch (erro) {
+      setToken(null);
+      throw paraErroAutenticacao(erro, perfil);
+    }
+  }, []);
+
+  const cadastrar = useCallback(async ({ perfil, nome, email, senha }) => {
+    try {
+      const { usuario: dadosUsuario } = await api("/auth/registro", {
+        metodo: "POST",
+        corpo: { nome, email, senha, perfil },
+      });
+
+      return enriquecerSessao(dadosUsuario);
+    } catch (erro) {
+      throw paraErroAutenticacao(erro);
+    }
+  }, []);
+
+  const sair = useCallback(() => {
+    limparSessaoArmazenada();
+    setToken(null);
+    setUsuario(null);
+  }, []);
+
+  // Atualiza a sessão depois de editar o próprio perfil.
+  const atualizarSessao = useCallback((dadosUsuario) => {
+    const sessao = enriquecerSessao(dadosUsuario);
+    let lembrar = false;
+
+    try {
+      lembrar = Boolean(localStorage.getItem(CHAVE));
+    } catch {
+      /* armazenamento indisponível */
+    }
+
     persistirSessao(sessao, lembrar);
     setUsuario(sessao);
     return sessao;
   }, []);
 
-  const cadastrar = useCallback(async ({ perfil, nome, email, sub, senha }) => {
-    // Etapa funcional: esta chamada vira POST /auth/registro na API Express.
-    const resultado = api.criarConta({
-      perfil,
-      nome,
-      email,
-      sub,
-      cor: PERFIS[perfil]?.cor || "#5FD4A8",
-      senha,
-    });
-
-    if (resultado.erro) throw new ErroAutenticacao(resultado.erro);
-    return resultado.conta;
-  }, []);
-
-  const sair = useCallback(() => {
-    limparSessaoArmazenada();
-    setUsuario(null);
-  }, []);
-
   const valor = useMemo(
-    () => ({ usuario, entrar, cadastrar, sair }),
-    [usuario, entrar, cadastrar, sair],
+    () => ({ usuario, entrar, cadastrar, sair, atualizarSessao }),
+    [usuario, entrar, cadastrar, sair, atualizarSessao],
   );
 
   return <AutenticacaoContexto.Provider value={valor}>{children}</AutenticacaoContexto.Provider>;

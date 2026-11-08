@@ -1,10 +1,30 @@
 const express = require("express");
 const asyncHandler = require("../utils/asyncHandler");
+const ErroAplicacao = require("../errors/ErroAplicacao");
 const { autorizar } = require("../middlewares/autenticacao");
 const {
     validarCampos,
     validarId
 } = require("../utils/validacao");
+
+function listaDeIds(valor, campo) {
+    if (valor === undefined) {
+        return undefined;
+    }
+
+    if (!Array.isArray(valor)) {
+        throw new ErroAplicacao(
+            "dados_invalidos",
+            "Verifique os campos informados.",
+            422,
+            {
+                [campo]: "Envie uma lista de identificadores."
+            }
+        );
+    }
+
+    return [...new Set(valor.map((item) => Number(item)))];
+}
 
 function opcional(req, campo) {
     const valor = req.query[campo];
@@ -66,23 +86,34 @@ function criarAcompanhamentoRoutes(acompanhamentoService, autenticar) {
         "/",
         autorizar("professor"),
         asyncHandler(async (req, res) => {
+            const rascunho = req.body.rascunho === true;
+
             const dados = validarCampos(req.body, {
                 idAluno: { tipo: "inteiro", obrigatorio: true },
                 idVinculo: { tipo: "inteiro", obrigatorio: true },
                 idBimestre: { tipo: "inteiro", obrigatorio: true },
-                descricao: {
-                    tipo: "texto",
-                    obrigatorio: true,
-                    min: 10,
-                    max: 2000
-                },
-                media: {
-                    tipo: "numero",
-                    obrigatorio: true,
-                    min: 0,
-                    max: 10
-                }
+                descricao: rascunho
+                    ? { tipo: "texto", max: 2000 }
+                    : {
+                          tipo: "texto",
+                          obrigatorio: true,
+                          min: 10,
+                          max: 2000
+                      },
+                media: rascunho
+                    ? { tipo: "numero", min: 0, max: 10 }
+                    : {
+                          tipo: "numero",
+                          obrigatorio: true,
+                          min: 0,
+                          max: 10
+                      }
             });
+
+            dados.idTags = listaDeIds(
+                req.body.idTags,
+                "idTags"
+            );
 
             const acompanhamento = await acompanhamentoService.criar(
                 req.usuario,
@@ -101,11 +132,12 @@ function criarAcompanhamentoRoutes(acompanhamentoService, autenticar) {
         autorizar("professor"),
         asyncHandler(async (req, res) => {
             const id = validarId(req.params.id, "id");
+            const rascunho = req.body.rascunho === true;
 
             const dados = validarCampos(req.body, {
                 descricao: {
                     tipo: "texto",
-                    min: 10,
+                    ...(rascunho ? {} : { min: 10 }),
                     max: 2000
                 },
                 media: {
@@ -118,6 +150,11 @@ function criarAcompanhamentoRoutes(acompanhamentoService, autenticar) {
                     valores: ["rascunho", "enviado"]
                 }
             });
+
+            dados.idTags = listaDeIds(
+                req.body.idTags,
+                "idTags"
+            );
 
             const acompanhamento =
                 await acompanhamentoService.atualizar(

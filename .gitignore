@@ -150,3 +150,14 @@ vite.config.ts.timestamp-*
 *.suo
 bin/
 obj/
+
+
+# Arquivos de teste do backend
+src/Entrega 2/Backend/teste*.js
+
+#graphify
+graphify-out/
+
+# Configurações locais do Claude Code
+.claude/
+CLAUDE.md

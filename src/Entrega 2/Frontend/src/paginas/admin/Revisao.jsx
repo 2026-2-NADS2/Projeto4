@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Avatar from "../../componentes/Avatar.jsx";
 import Campo from "../../componentes/Campo.jsx";
@@ -11,7 +11,9 @@ import PageHead from "../../componentes/PageHead.jsx";
 import StatusBadge from "../../componentes/StatusBadge.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
+import { hidratar } from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
+import { api as apiServidor } from "../../servicos/api.js";
 import { fmtMedia } from "../../utilitarios/formatadores.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
@@ -29,6 +31,12 @@ function rotuloStatus(status) {
   return { fila: "fila" }[status] || status;
 }
 
+async function mudarStatus(id, status, observacao) {
+  const corpo = { status };
+  if (observacao) corpo.observacao = String(observacao).slice(0, 500);
+  return apiServidor(`/admin/acompanhamentos/${id}/status`, { metodo: "PATCH", corpo });
+}
+
 export function RevisaoLista() {
   useTitulo("Revisão");
   const { usuario } = useAutenticacao();
@@ -38,17 +46,18 @@ export function RevisaoLista() {
   const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
   const [selecionados, setSelecionados] = useState([]);
   const [lote, setLote] = useState(false);
+  const [publicando, setPublicando] = useState(false);
   const [, forcar] = useState(0);
 
   useEffect(() => {
     setStatus(params.get("status") || "fila");
   }, [params]);
 
-  const base = useMemo(() => {
-    if (status === "fila") return api.relsFiltrados({ status: ["enviado", "revisao"] });
-    if (status === "publicado") return api.relsFiltrados({ status: "publicado", bim: 3 });
-    return api.relsFiltrados({ status });
-  }, [status]);
+  // Sem useMemo: a hidratação troca os arrays e a lista precisa refletir já.
+  let base;
+  if (status === "fila") base = api.relsFiltrados({ status: ["enviado", "revisao"] });
+  else if (status === "publicado") base = api.relsFiltrados({ status: "publicado", bim: 3 });
+  else base = api.relsFiltrados({ status });
 
   const lista = base.filter((relatorio) =>
     Object.entries(filtros).every(
@@ -76,18 +85,48 @@ export function RevisaoLista() {
     );
   }
 
-  function publicarLote() {
-    selecionados.forEach((id) => {
-      api.mudarStatus(id, "publicado", usuario?.nome || "Coordenação", "Coordenação");
-    });
-    avisar(
-      `${selecionados.length} registro(s) publicado(s)`,
-      "Os responsáveis vinculados já podem visualizar.",
-      "ok",
-    );
-    setSelecionados([]);
-    setLote(false);
-    forcar((valor) => valor + 1);
+  function marcarPublicado(id) {
+    const alvo = api.rel(id);
+    if (alvo) {
+      alvo.status = "publicado";
+      alvo.lido = true;
+    }
+  }
+
+  async function publicarLote() {
+    if (publicando) return;
+
+    const ids = [...selecionados];
+    const publicados = [];
+    setPublicando(true);
+
+    try {
+      for (const id of ids) {
+        const relatorio = api.rel(id);
+        if (relatorio?.status === "enviado") {
+          await mudarStatus(id, "em_revisao");
+        }
+        await mudarStatus(id, "publicado");
+        publicados.push(id);
+      }
+      publicados.forEach(marcarPublicado);
+      hidratar(usuario).catch(() => {});
+      avisar(
+        `${ids.length} registro(s) publicado(s)`,
+        "Os responsáveis vinculados já podem visualizar.",
+        "ok",
+      );
+      setSelecionados([]);
+      setLote(false);
+      forcar((valor) => valor + 1);
+    } catch (erro) {
+      publicados.forEach(marcarPublicado);
+      hidratar(usuario).catch(() => {});
+      forcar((valor) => valor + 1);
+      avisar("Não foi possível publicar", erro.message, "err");
+    } finally {
+      setPublicando(false);
+    }
   }
 
   return (
@@ -288,8 +327,13 @@ export function RevisaoLista() {
             <button type="button" className="btn btn-secondary" onClick={() => setLote(false)}>
               Cancelar
             </button>
-            <button type="button" className="btn btn-success" onClick={publicarLote}>
-              <Icone nome="check" /> Publicar
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={publicarLote}
+              disabled={publicando}
+            >
+              <Icone nome="check" /> {publicando ? "Publicando…" : "Publicar"}
             </button>
           </>
         }
@@ -314,6 +358,8 @@ export function RevisaoDetalhe() {
   const [erroMedia, setErroMedia] = useState("");
   const [erroDesc, setErroDesc] = useState("");
   const [erroComentario, setErroComentario] = useState("");
+  const [processando, setProcessando] = useState(false);
+  const processandoRef = useRef(false);
 
   const relatorio = api.rel(id);
 
@@ -342,9 +388,36 @@ export function RevisaoDetalhe() {
     else forcar((valor) => valor + 1);
   }
 
+  // Evita duplo clique: a segunda chamada era o que tentava
+  // PUBLICADO -> EM_REVISAO depois de a primeira já ter publicado.
+  async function executar(acao, mensagemErro) {
+    if (processandoRef.current) return;
+    processandoRef.current = true;
+    setProcessando(true);
+    try {
+      await acao();
+    } catch (erro) {
+      avisar(mensagemErro, erro.message, "err");
+    } finally {
+      processandoRef.current = false;
+      setProcessando(false);
+    }
+  }
+
+  function atualizarStatusLocal(status) {
+    const alvo = api.rel(relatorio.id);
+    if (alvo) {
+      alvo.status = status;
+      if (status === "publicado") alvo.lido = true;
+    }
+  }
+
   function iniciarRevisao() {
-    api.mudarStatus(relatorio.id, "revisao", usuario?.nome || "Coordenação", "Coordenação");
-    avisarSucesso("Revisão iniciada", "O professor verá o status “Em revisão”.", false);
+    executar(async () => {
+      await mudarStatus(relatorio.id, "em_revisao");
+      await hidratar(usuario);
+      avisarSucesso("Revisão iniciada", "O professor verá o status “Em revisão”.", false);
+    }, "Não foi possível iniciar a revisão");
   }
 
   function salvar() {
@@ -365,41 +438,23 @@ export function RevisaoDetalhe() {
       return;
     }
 
-    if (numero !== relatorio.media) {
-      relatorio.historico.push({
-        quem: usuario?.nome || "Coordenação",
-        papel: "Coordenação",
-        quando: "agora",
-        acao: "Média alterada",
-        de: fmtMedia(relatorio.media),
-        para: fmtMedia(numero),
+    executar(async () => {
+      await apiServidor(`/admin/acompanhamentos/${relatorio.id}`, {
+        metodo: "PATCH",
+        corpo: { descricao: desc.trim(), media: numero },
       });
-      relatorio.media = numero;
-    }
-    if (desc !== relatorio.desc) {
-      const versao =
-        relatorio.historico.filter((item) => item.acao === "Descrição ajustada").length + 1;
-      relatorio.historico.push({
-        quem: usuario?.nome || "Coordenação",
-        papel: "Coordenação",
-        quando: "agora",
-        acao: "Descrição ajustada",
-        de: `v${versao}`,
-        para: `v${versao + 1}`,
-        textoAnterior: relatorio.desc,
-        textoNovo: desc,
-      });
-      relatorio.desc = desc;
-    }
-    if (relatorio.status === "enviado") {
-      api.mudarStatus(relatorio.id, "revisao", usuario?.nome || "Coordenação", "Coordenação");
-    }
-    setEditando(false);
-    avisarSucesso(
-      "Alterações salvas",
-      "Estado anterior e posterior registrados no histórico.",
-      false,
-    );
+      if (relatorio.status === "enviado") {
+        await mudarStatus(relatorio.id, "em_revisao");
+        atualizarStatusLocal("revisao");
+      }
+      await hidratar(usuario);
+      setEditando(false);
+      avisarSucesso(
+        "Alterações salvas",
+        "Estado anterior e posterior registrados no histórico.",
+        false,
+      );
+    }, "Não foi possível salvar");
   }
 
   function devolver(evento) {
@@ -408,14 +463,17 @@ export function RevisaoDetalhe() {
       setErroComentario("Escreva ao menos 15 caracteres para orientar o professor.");
       return;
     }
-    api.mudarStatus(
-      relatorio.id,
-      "devolvido",
-      usuario?.nome || "Coordenação",
-      "Coordenação",
-      `${motivos.length ? `Ajustar: ${motivos.join(", ")}. ` : ""}${comentario.trim()}`,
-    );
-    avisarSucesso("Registro devolvido ao professor", "O comentário ficou registrado no histórico.");
+    const observacao = `${motivos.length ? `Ajustar: ${motivos.join(", ")}. ` : ""}${comentario.trim()}`;
+
+    executar(async () => {
+      await mudarStatus(relatorio.id, "devolvido", observacao);
+      atualizarStatusLocal("devolvido");
+      hidratar(usuario).catch(() => {});
+      avisarSucesso(
+        "Registro devolvido ao professor",
+        "O comentário ficou registrado no histórico.",
+      );
+    }, "Não foi possível devolver");
   }
 
   function cancelar(evento) {
@@ -424,19 +482,25 @@ export function RevisaoDetalhe() {
       setErroComentario("Informe o motivo do cancelamento.");
       return;
     }
-    api.mudarStatus(
-      relatorio.id,
-      "cancelado",
-      usuario?.nome || "Coordenação",
-      "Coordenação",
-      comentario.trim(),
-    );
-    avisarSucesso("Registro cancelado", "O histórico foi mantido.", true);
+
+    executar(async () => {
+      await mudarStatus(relatorio.id, "cancelado", comentario.trim());
+      atualizarStatusLocal("cancelado");
+      hidratar(usuario).catch(() => {});
+      avisarSucesso("Registro cancelado", "O histórico foi mantido.", true);
+    }, "Não foi possível cancelar");
   }
 
   function publicar() {
-    api.mudarStatus(relatorio.id, "publicado", usuario?.nome || "Coordenação", "Coordenação");
-    avisarSucesso("Relatório publicado", "A família já pode visualizar.", true);
+    executar(async () => {
+      if (relatorio.status === "enviado") {
+        await mudarStatus(relatorio.id, "em_revisao");
+      }
+      await mudarStatus(relatorio.id, "publicado");
+      atualizarStatusLocal("publicado");
+      hidratar(usuario).catch(() => {});
+      avisarSucesso("Relatório publicado", "A família já pode visualizar.", true);
+    }, "Não foi possível publicar");
   }
 
   function abrirModal(tipo) {
@@ -470,8 +534,13 @@ export function RevisaoDetalhe() {
             <b>Registro aguardando início da revisão</b>
             Ao iniciar, o professor vê o status “Em revisão” e não pode mais editar.
           </div>
-          <button type="button" className="btn btn-primary btn-sm" onClick={iniciarRevisao}>
-            Iniciar revisão
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={iniciarRevisao}
+            disabled={processando}
+          >
+            {processando ? "Iniciando…" : "Iniciar revisão"}
           </button>
         </div>
       )}
@@ -585,17 +654,37 @@ export function RevisaoDetalhe() {
 
           {editavel && (
             <div className="action-bar">
-              <button type="button" className="btn btn-danger" onClick={() => abrirModal("devolver")}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => abrirModal("devolver")}
+                disabled={processando}
+              >
                 <Icone nome="undo" /> Devolver para ajustes
               </button>
-              <button type="button" className="btn btn-ghost" onClick={() => abrirModal("cancelar")}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => abrirModal("cancelar")}
+                disabled={processando}
+              >
                 <Icone nome="ban" /> Cancelar registro
               </button>
               <span className="grow" />
-              <button type="button" className="btn btn-secondary" onClick={salvar}>
-                <Icone nome="save" /> Salvar alteração
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={salvar}
+                disabled={processando}
+              >
+                <Icone nome="save" /> {processando ? "Salvando…" : "Salvar alteração"}
               </button>
-              <button type="button" className="btn btn-success" onClick={() => abrirModal("publicar")}>
+              <button
+                type="button"
+                className="btn btn-success"
+                onClick={() => abrirModal("publicar")}
+                disabled={processando}
+              >
                 <Icone nome="send" /> Publicar para a família
               </button>
             </div>
@@ -643,8 +732,13 @@ export function RevisaoDetalhe() {
             <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
               Voltar
             </button>
-            <button type="button" className="btn btn-success" onClick={publicar}>
-              <Icone nome="check" /> Confirmar publicação
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={publicar}
+              disabled={processando}
+            >
+              <Icone nome="check" /> {processando ? "Publicando…" : "Confirmar publicação"}
             </button>
           </>
         }
@@ -688,8 +782,13 @@ export function RevisaoDetalhe() {
             <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
               Cancelar
             </button>
-            <button type="submit" form="form-devolver" className="btn btn-danger">
-              <Icone nome="send" /> Devolver ao professor
+            <button
+              type="submit"
+              form="form-devolver"
+              className="btn btn-danger"
+              disabled={processando}
+            >
+              <Icone nome="send" /> {processando ? "Devolvendo…" : "Devolver ao professor"}
             </button>
           </>
         }
@@ -745,8 +844,13 @@ export function RevisaoDetalhe() {
             <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
               Voltar
             </button>
-            <button type="submit" form="form-cancelar" className="btn btn-danger">
-              Cancelar registro
+            <button
+              type="submit"
+              form="form-cancelar"
+              className="btn btn-danger"
+              disabled={processando}
+            >
+              {processando ? "Cancelando…" : "Cancelar registro"}
             </button>
           </>
         }

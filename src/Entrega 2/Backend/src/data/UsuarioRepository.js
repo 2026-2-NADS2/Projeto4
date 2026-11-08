@@ -15,7 +15,8 @@ class UsuarioRepository {
             linha.perfil,
             linha.ativo,
             linha.data_criacao,
-            linha.data_atualizacao
+            linha.data_atualizacao,
+            linha.telefone
         );
     }
 
@@ -28,6 +29,7 @@ class UsuarioRepository {
                 senha_hash,
                 perfil,
                 ativo,
+                telefone,
                 data_criacao,
                 data_atualizacao
             FROM usuario
@@ -52,6 +54,7 @@ class UsuarioRepository {
                 senha_hash,
                 perfil,
                 ativo,
+                telefone,
                 data_criacao,
                 data_atualizacao
             FROM usuario
@@ -84,6 +87,7 @@ class UsuarioRepository {
                 senha_hash,
                 perfil,
                 ativo,
+                telefone,
                 data_criacao,
                 data_atualizacao;
         `;
@@ -94,6 +98,40 @@ class UsuarioRepository {
             senhaHash,
             perfilParaBanco(perfil) || perfil
         ]);
+
+        return this.montarUsuario(resultado.rows[0]);
+    }
+
+    async atualizarPerfil(idUsuario, { nome, email, telefone }) {
+        const sql = `
+            UPDATE usuario
+            SET nome = $1,
+                email = $2,
+                telefone = $3,
+                data_atualizacao = NOW()
+            WHERE id_usuario = $4
+            RETURNING
+                id_usuario,
+                nome,
+                email,
+                senha_hash,
+                perfil,
+                ativo,
+                telefone,
+                data_criacao,
+                data_atualizacao;
+        `;
+
+        const resultado = await this.banco.query(sql, [
+            nome,
+            email,
+            telefone,
+            idUsuario
+        ]);
+
+        if (resultado.rows.length === 0) {
+            return null;
+        }
 
         return this.montarUsuario(resultado.rows[0]);
     }

@@ -105,6 +105,18 @@ class BancoFalso {
         );
     }
 
+    async atualizarPerfil(id, { nome, email, telefone }) {
+        const usuario = await this.buscarUsuarioPorId(id);
+
+        if (!usuario) return null;
+
+        usuario.nome = nome;
+        usuario.email = email;
+        usuario.telefone = telefone;
+
+        return usuario;
+    }
+
     async criarUsuario({ nome, email, senhaHash, perfil }) {
         const usuario = new Usuario(
             this.proximoUsuario++,
@@ -375,16 +387,25 @@ before(async () => {
     const usuarioRepository = {
         buscarPorEmail: (email) => banco.buscarPorEmail(email),
         buscarPorId: (id) => banco.buscarUsuarioPorId(id),
-        criar: (dados) => banco.criarUsuario(dados)
+        criar: (dados) => banco.criarUsuario(dados),
+        atualizarPerfil: (id, dados) => banco.atualizarPerfil(id, dados)
     };
     const professorRepository = {
         buscarPorUsuario: (idUsuario) => banco.buscarPorUsuario(idUsuario),
         listarVinculos: (idProfessor) => banco.listarVinculos(idProfessor),
         listar: () => banco.listarProfessores()
     };
+    const responsaveisCriados = new Map();
     const responsavelRepository = {
-        buscarPorUsuario: (idUsuario) =>
-            banco.buscarResponsavelPorUsuario(idUsuario)
+        buscarPorUsuario: async (idUsuario) =>
+            (await banco.buscarResponsavelPorUsuario(idUsuario)) ||
+            responsaveisCriados.get(Number(idUsuario)) ||
+            null,
+        criarPorUsuario: async (idUsuario) => {
+            const registro = { idResponsavel: 50 + Number(idUsuario) };
+            responsaveisCriados.set(Number(idUsuario), registro);
+            return registro;
+        }
     };
     const alunoRepository = {
         listarAlunos: () => banco.listarAlunos(),
@@ -609,6 +630,29 @@ test("perfil gravado em maiúsculas é normalizado na API", async () => {
     assert.equal(me.corpo.dados.usuario.perfil, "administrador");
 });
 
+test("usuário atualiza o próprio perfil e o telefone persiste", async () => {
+    const token = await login("carlos@kfka.com", "Prof@123", "professor");
+    const resposta = await requisitar("/api/auth/perfil", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+            nome: "Carlos Lima",
+            email: "carlos@kfka.com",
+            telefone: "(11) 98888-7777"
+        })
+    });
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.corpo.dados.usuario.telefone, "(11) 98888-7777");
+
+    const me = await requisitar("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+    assert.equal(me.status, 200);
+    assert.equal(me.corpo.dados.usuario.telefone, "(11) 98888-7777");
+});
+
 test("administrador lista todos os alunos", async () => {
     const token = await login("admin@kfka.com", "Admin@123", "administrador");
     const resposta = await requisitar("/api/alunos", {
@@ -633,6 +677,7 @@ test("cadastro cria responsável, grava hash e permite login", async () => {
 
     assert.equal(cadastro.status, 201);
     assert.equal(cadastro.corpo.dados.usuario.email, "novo@kfka.com");
+    assert.ok(cadastro.corpo.dados.usuario.responsavelId);
 
     const salvo = banco.usuarios.find(
         (usuario) => usuario.email === "novo@kfka.com"

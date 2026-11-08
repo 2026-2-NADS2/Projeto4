@@ -19,6 +19,13 @@ export default function Modal({
 }) {
   const caixaRef = useRef(null);
   const focoAnterior = useRef(null);
+  const aoFecharRef = useRef(aoFechar);
+
+  // Mantém o callback atual sem reiniciar o efeito a cada render: se o efeito
+  // dependesse de `aoFechar`, cada tecla digitada no modal roubaria o foco.
+  useEffect(() => {
+    aoFecharRef.current = aoFechar;
+  });
 
   useEffect(() => {
     if (!aberto) return undefined;
@@ -35,7 +42,7 @@ export default function Modal({
     function aoTeclar(evento) {
       if (evento.key === "Escape") {
         evento.preventDefault();
-        aoFechar?.();
+        aoFecharRef.current?.();
         return;
       }
 
@@ -68,7 +75,7 @@ export default function Modal({
       document.body.style.overflow = "";
       focoAnterior.current?.focus?.();
     };
-  }, [aberto, aoFechar]);
+  }, [aberto]);
 
   if (!aberto) return null;
 

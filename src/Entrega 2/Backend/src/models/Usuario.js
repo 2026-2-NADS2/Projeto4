@@ -7,7 +7,8 @@ class Usuario {
         perfil,
         ativo,
         dataCriacao,
-        dataAtualizacao
+        dataAtualizacao,
+        telefone = null
     ) {
         this.idUsuario = idUsuario;
         this.nome = nome;
@@ -17,6 +18,7 @@ class Usuario {
         this.ativo = ativo;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
+        this.telefone = telefone;
     }
 
     estaAtivo() {

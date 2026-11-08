@@ -1,13 +1,11 @@
-import { STATUS } from "./status.js";
-
 /* =========================================================
    KFKA — Dados demonstrativos (fictícios) e "serviço" local
-   Na etapa funcional, as funções de KFKA.api serão trocadas por
-   chamadas fetch() para a API Node/Express + MySQL — as telas não
-   precisam mudar, pois só conversam com KFKA.api.
+   As telas só conversam com KFKA.api; a hidratação real (ver
+   carregarDados.js) substitui os arrays fictícios pelos dados da API
+   Node/Express + PostgreSQL.
    ========================================================= */
 // O protótipo usava o namespace global KFKA; aqui o mesmo código roda como módulo.
-const K = { STATUS, data: null, api: null, contas: null };
+const K = { data: null, api: null };
 
 (function (K) {
   'use strict';
@@ -590,19 +588,11 @@ const K = { STATUS, data: null, api: null, contas: null };
         'Nova observação de responsável',
         'Ana Souza · Lucas Souza · 6º A',
         'ontem, 19:40',
-        '#/admin/revisao/rel-102',
+        '#/admin/revisao',
       ],
     ],
     professor: [
       ['undo', 'ico-bad', 'Registro devolvido para ajustes', 'Gabriel Costa · 6º A · Matemática', 'há 3 h', null],
-      [
-        'message',
-        'ico-teal',
-        'Ana Souza enviou uma observação',
-        'Lucas Souza · Matemática · 2º bimestre',
-        'ontem',
-        '#/professor/registros/rel-102',
-      ],
       ['clock', 'ico-warn', 'Digitação encerra em 2 dias', '3º bimestre · 30/09 às 23:59', 'hoje', null],
     ],
     familia: [
@@ -683,7 +673,6 @@ const K = { STATUS, data: null, api: null, contas: null };
     area: (id) => areas.find((a) => a.id === id),
     alunosDaTurma: (t) => alunos.filter((a) => a.turma === t),
     respDoAluno: (aid) => responsaveis.filter((r) => r.alunos.includes(aid)),
-    profDe: (turma, disc) => A.prof((vinculos.find((v) => v.turma === turma && v.disc === disc) || {}).prof),
     vinculosDoProf: (pid) => vinculos.filter((v) => v.prof === pid),
     relsFiltrados: (f = {}) =>
       rel.filter((r) =>
@@ -699,100 +688,10 @@ const K = { STATUS, data: null, api: null, contas: null };
     },
     registro: (aluno, disc, bim) =>
       rel.find((r) => r.aluno === aluno && r.disc === disc && r.bim === Number(bim) && r.status !== 'cancelado'),
-    mudarStatus: (id, para, quem, papel, coment) => {
-      const r = A.rel(id);
-      const de = r.status;
-      r.status = para;
-      const acoes = {
-        enviado: 'Enviado para revisão',
-        revisao: 'Revisão iniciada',
-        publicado: 'Publicado para a família',
-        devolvido: 'Devolvido para ajustes',
-        rascunho: 'Rascunho salvo',
-        cancelado: 'Registro cancelado',
-      };
-      r.historico.push(H(quem, papel, 'agora', acoes[para] || 'Atualizado', de, para, coment));
-      if (coment) r.comentarios.push({ quem, papel, quando: 'agora', texto: coment });
-      auditoria.unshift({
-        quando: 'agora',
-        quem,
-        acao: acoes[para],
-        registro: `${A.aluno(r.aluno).nome} · ${A.disc(r.disc).nome} · ${A.turma(r.turma).nome}`,
-        de: K.STATUS[de].label,
-        para: K.STATUS[para].label,
-      });
-      return r;
-    },
-    salvarRegistro: (dados) => {
-      const { id, ...rest } = dados; // id indefinido não pode sobrescrever o gerado
-      let r = id ? A.rel(id) : null;
-      if (!r) {
-        const quem = professores.find((p) => p.id === rest.prof)?.nome || 'Carlos Lima';
-        r = add({ ...rest, historico: [H(quem, 'Professor', 'agora', 'Rascunho criado', null, 'rascunho')] });
-      } else Object.assign(r, rest);
-      return r;
-    },
-  };
-  /* ---------- Contas de acesso (só em memória: somem ao recarregar a página) ----------
-     As pessoas fictícias da escola já têm conta, com a senha de teste "kfka2026"; quem se
-     cadastra em #/criar-conta entra na lista e passa a conseguir fazer login. Na etapa
-     funcional isto vira o cadastro e a autenticação do servidor (senha nunca fica no cliente). */
-  const SENHA_TESTE = 'kfka2026';
-  const contas = [
-    {
-      perfil: 'administrador',
-      nome: K.data.sessao.admin.nome,
-      email: K.data.sessao.admin.email,
-      sub: K.data.sessao.admin.cargo,
-      cor: K.data.sessao.admin.cor,
-      senha: SENHA_TESTE,
-    },
-    ...professores
-      .filter((p) => p.ativo)
-      .map((p) => ({
-        perfil: 'professor',
-        nome: p.nome,
-        email: p.email,
-        sub: p.disc
-          .map((d) => A.disc(d)?.nome)
-          .filter(Boolean)
-          .join(' · '),
-        cor: p.cor,
-        senha: SENHA_TESTE,
-      })),
-    ...responsaveis
-      .filter((r) => r.ativo)
-      .map((r) => ({
-        perfil: 'responsavel',
-        nome: r.nome,
-        email: r.email,
-        sub: 'Responsável',
-        cor: '#5FD4A8',
-        senha: SENHA_TESTE,
-      })),
-  ];
-  // Compara e-mails sem diferenciar maiúsculas nem espaços nas pontas.
-  const mesmoEmail = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
-  A.conta = (email) => contas.find((c) => mesmoEmail(c.email, email));
-  A.criarConta = (c) => {
-    if (A.conta(c.email)) return { erro: 'email' };
-    contas.push(c);
-    return { conta: c };
-  };
-  // Respostas iguais para "e-mail não existe" e "senha errada" evitariam enumeração de contas
-  // num sistema real; aqui o protótipo distingue os dois para a banca ver as duas mensagens.
-  A.entrar = (perfil, email, senha) => {
-    const c = A.conta(email);
-    if (!c) return { erro: 'sem-conta' };
-    if (c.perfil !== perfil) return { erro: 'outro-perfil', perfil: c.perfil };
-    if (c.senha !== senha) return { erro: 'senha' };
-    return { conta: c };
   };
   K.api = A;
-  K.contas = contas;
 })(K);
 
 export const dados = K.data;
 export const api = K.api;
-export const contasDemo = K.contas;
 

@@ -127,6 +127,14 @@ export default function Login() {
             : "Senha incorreta. O acesso foi bloqueado por 15 minutos.",
         );
         document.getElementById("senha")?.select();
+      } else {
+        // Falhas ao carregar os dados após o login (ex.: erro 500) não tinham
+        // mensagem nenhuma na tela.
+        setAlerta({
+          titulo: "Não foi possível entrar",
+          texto: erro.mensagem || "Tente novamente em alguns instantes.",
+          tipo: "danger",
+        });
       }
     } finally {
       setEnviando(false);

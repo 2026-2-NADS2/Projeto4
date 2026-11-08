@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, dados } from "../dados/dados.js";
 import { useAutenticacao } from "../contextos/AutenticacaoContexto.jsx";
@@ -103,6 +103,32 @@ const MENUS = {
 const ROTULOS = { admin: "Administrador", professor: "Professor", familia: "Responsável" };
 const CORES = { admin: "var(--sun)", professor: "var(--sky)", familia: "var(--mint)" };
 
+const CHAVE_NOTIFICACOES = "kfka-notificacoes-lidas";
+
+const chaveNotificacao = ([, , titulo, , quando]) => `${titulo}-${quando}`;
+
+// Cada aviso tem seu próprio estado de leitura. O valor "1" gravado pela versão
+// anterior significava "tudo lido" e é tratado como tal.
+function lerNotificacoesLidas(papel) {
+  try {
+    const valor = localStorage.getItem(`${CHAVE_NOTIFICACOES}:${papel}`);
+    if (!valor) return new Set();
+    if (valor === "1") return new Set(["*"]);
+    const chaves = JSON.parse(valor);
+    return new Set(Array.isArray(chaves) ? chaves : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function salvarNotificacoesLidas(papel, lidas) {
+  try {
+    localStorage.setItem(`${CHAVE_NOTIFICACOES}:${papel}`, JSON.stringify([...lidas]));
+  } catch {
+    /* armazenamento indisponível */
+  }
+}
+
 function caminhoDoAviso(href, papel) {
   if (href) return href.replace(/^#/, "");
   if (papel === "professor") return "/professor/registros?status=devolvido";
@@ -118,6 +144,9 @@ export default function LayoutApp({ papel, ativo, children }) {
   const [navAberto, setNavAberto] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState(null);
   const [busca, setBusca] = useState("");
+  const [notificacoesLidas, setNotificacoesLidas] = useState(() =>
+    lerNotificacoesLidas(papel),
+  );
 
   // Fecha menus suspensos ao clicar fora e ao trocar de tela.
   useEffect(() => {
@@ -136,19 +165,22 @@ export default function LayoutApp({ papel, ativo, children }) {
     setNavAberto(false);
   }, [localizacao.pathname]);
 
+  useEffect(() => {
+    setNotificacoesLidas(lerNotificacoesLidas(papel));
+  }, [papel]);
+
   const nome = usuario?.nome || "";
   const sub = usuario?.sub || ROTULOS[papel];
   const cor = usuario?.cor || CORES[papel];
 
-  const contagem = useMemo(() => {
-    if (papel === "admin") {
-      return api.relsFiltrados({ status: ["enviado", "revisao"] }).length;
-    }
-    if (papel === "professor") {
-      return api.relsFiltrados({ prof: usuario?.profId || "p1", status: "devolvido" }).length;
-    }
-    return 0;
-  }, [papel, usuario?.profId]);
+  // Calculado a cada render: a hidratação substitui os arrays em memória e um
+  // useMemo com dependências estáveis manteria a contagem antiga (mock).
+  let contagem = 0;
+  if (papel === "admin") {
+    contagem = api.relsFiltrados({ status: ["enviado", "revisao"] }).length;
+  } else if (papel === "professor") {
+    contagem = api.relsFiltrados({ prof: usuario?.profId || "p1", status: "devolvido" }).length;
+  }
 
   const responsavel = dados.responsaveis.find(
     (item) => item.id === (usuario?.respId || "r1"),
@@ -157,6 +189,11 @@ export default function LayoutApp({ papel, ativo, children }) {
   const alunoSelecionado = new URLSearchParams(localizacao.search).get("aluno");
 
   const notificacoes = dados.notificacoes[papel] || [];
+  const naoLidas = notificacoes.filter(
+    (notificacao) =>
+      !notificacoesLidas.has("*") && !notificacoesLidas.has(chaveNotificacao(notificacao)),
+  );
+  const todasLidas = naoLidas.length === 0;
 
   function sairConta() {
     sair();
@@ -167,6 +204,21 @@ export default function LayoutApp({ papel, ativo, children }) {
   function trocarPerfil() {
     sair();
     navegar("/entrar");
+  }
+
+  function marcarNotificacaoLida(chave) {
+    if (notificacoesLidas.has("*") || notificacoesLidas.has(chave)) return;
+    const novas = new Set(notificacoesLidas).add(chave);
+    setNotificacoesLidas(novas);
+    salvarNotificacoesLidas(papel, novas);
+  }
+
+  function marcarNotificacoesLidas() {
+    const novas = new Set(notificacoes.map(chaveNotificacao));
+    setNotificacoesLidas(novas);
+    salvarNotificacoesLidas(papel, novas);
+    avisar("Notificações marcadas como lidas", "", "info");
+    setDropdownAberto(null);
   }
 
   function enviarBusca(evento) {
@@ -336,13 +388,15 @@ export default function LayoutApp({ papel, ativo, children }) {
                 className="icon-btn"
                 aria-haspopup="true"
                 aria-expanded={dropdownAberto === "notificacoes"}
-                aria-label={`Notificações (${notificacoes.length} novas)`}
+                aria-label={
+                  todasLidas ? "Notificações" : `Notificações (${naoLidas.length} novas)`
+                }
                 onClick={() =>
                   setDropdownAberto((atual) => (atual === "notificacoes" ? null : "notificacoes"))
                 }
               >
                 <Icone nome="bell" />
-                <span className="badge-dot" />
+                {!todasLidas && <span className="badge-dot" />}
               </button>
               <div className="menu notif-panel" role="menu">
                 <div className="row-between" style={{ padding: "6px 8px 10px" }}>
@@ -352,32 +406,40 @@ export default function LayoutApp({ papel, ativo, children }) {
                   <button
                     type="button"
                     className="link-btn"
-                    onClick={() => {
-                      avisar("Notificações marcadas como lidas", "", "info");
-                      setDropdownAberto(null);
-                    }}
+                    onClick={marcarNotificacoesLidas}
+                    disabled={todasLidas}
                   >
-                    Marcar como lidas
+                    {todasLidas ? "Tudo lido" : "Marcar como lidas"}
                   </button>
                 </div>
-                {notificacoes.map(([icone, tom, titulo, detalhe, quando, href]) => (
-                  <Link
-                    className="notif-item unread"
-                    key={`${titulo}-${quando}`}
-                    to={caminhoDoAviso(href, papel)}
-                    onClick={() => setDropdownAberto(null)}
-                  >
-                    <span className={`ico ${tom}`}>
-                      <Icone nome={icone} className="icon-sm" />
-                    </span>
-                    <span>
-                      <b>{titulo}</b>
-                      <small>
-                        {detalhe} · {quando}
-                      </small>
-                    </span>
-                  </Link>
-                ))}
+                {notificacoes.map((notificacao) => {
+                  const [icone, tom, titulo, detalhe, quando, href] = notificacao;
+                  const chave = chaveNotificacao(notificacao);
+                  const lida =
+                    notificacoesLidas.has("*") || notificacoesLidas.has(chave);
+
+                  return (
+                    <Link
+                      className={`notif-item${lida ? "" : " unread"}`}
+                      key={chave}
+                      to={caminhoDoAviso(href, papel)}
+                      onClick={() => {
+                        marcarNotificacaoLida(chave);
+                        setDropdownAberto(null);
+                      }}
+                    >
+                      <span className={`ico ${tom}`}>
+                        <Icone nome={icone} className="icon-sm" />
+                      </span>
+                      <span>
+                        <b>{titulo}</b>
+                        <small>
+                          {detalhe} · {quando}
+                        </small>
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 

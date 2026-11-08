@@ -225,7 +225,7 @@ export function RelatorioDetalhe() {
   const turma = api.turma(registro.turma);
   const disciplina = api.disc(registro.disc);
   const professor = api.prof(registro.prof);
-  const area = api.area(disciplina.area);
+  const area = api.area(disciplina?.area);
   const historico = api
     .relsDaFamilia(responsavel.id, aluno.id)
     .filter((item) => item.disc === registro.disc)
@@ -336,7 +336,7 @@ export function RelatorioDetalhe() {
                 <div>
                   <b>Prof. {professor.nome}</b>
                   <div className="muted" style={{ fontSize: "0.8125rem" }}>
-                    {area.nome}
+                    {area?.nome || ""}
                   </div>
                 </div>
               </div>

@@ -89,6 +89,87 @@ class AcompanhamentoService {
     // VALIDAÇÕES DE NEGÓCIO
     // =====================================================
 
+    async validarTags(idTags) {
+        if (idTags === undefined) {
+            return undefined;
+        }
+
+        if (!Array.isArray(idTags)) {
+            throw new ErroAplicacao(
+                "tag_invalida",
+                "As tags devem ser enviadas como lista de identificadores.",
+                422,
+                {
+                    idTags:
+                        "Envie uma lista de identificadores de tags."
+                }
+            );
+        }
+
+        const ids = [
+            ...new Set(
+                idTags.map((item) => Number(item))
+            )
+        ];
+
+        if (
+            ids.some(
+                (id) =>
+                    !Number.isInteger(id) ||
+                    id <= 0
+            )
+        ) {
+            throw new ErroAplicacao(
+                "tag_invalida",
+                "Uma ou mais tags informadas são inválidas.",
+                422,
+                {
+                    idTags:
+                        "Use identificadores de tags válidos."
+                }
+            );
+        }
+
+        if (
+            ids.length > 0 &&
+            typeof this
+                .acompanhamentoRepository
+                .tagsExistem === "function"
+        ) {
+            const existentes =
+                await this
+                    .acompanhamentoRepository
+                    .tagsExistem(ids);
+
+            const encontradas =
+                new Set(
+                    (existentes || []).map(
+                        (item) => Number(item)
+                    )
+                );
+
+            const desconhecidas =
+                ids.filter(
+                    (id) => !encontradas.has(id)
+                );
+
+            if (desconhecidas.length > 0) {
+                throw new ErroAplicacao(
+                    "tag_invalida",
+                    "Uma ou mais tags informadas não existem ou estão inativas.",
+                    422,
+                    {
+                        idTags:
+                            "Selecione apenas tags disponíveis."
+                    }
+                );
+            }
+        }
+
+        return ids;
+    }
+
+
     validarMedia(media) {
         const valor = Number(media);
 
@@ -327,9 +408,17 @@ class AcompanhamentoService {
                 linha.descricao,
 
             media:
-                linha.media === null
+                linha.media === null ||
+                linha.media === undefined
                     ? null
                     : Number(linha.media),
+
+            tags: Array.isArray(linha.tags)
+                ? linha.tags.map((tag) => ({
+                      id: Number(tag.id),
+                      nome: tag.nome
+                  }))
+                : [],
 
             situacao:
                 linha.situacao_media,
@@ -550,8 +639,14 @@ class AcompanhamentoService {
         }
 
         const media =
-            this.validarMedia(
-                dados.media
+            dados.media === undefined ||
+            dados.media === null
+                ? null
+                : this.validarMedia(dados.media);
+
+        const idTags =
+            await this.validarTags(
+                dados.idTags
             );
 
         const vinculo =
@@ -602,7 +697,7 @@ class AcompanhamentoService {
                             dados.idBimestre,
 
                         descricao:
-                            dados.descricao,
+                            dados.descricao ?? "",
 
                         media: media,
 
@@ -610,7 +705,9 @@ class AcompanhamentoService {
                             "RASCUNHO"
                     },
 
-                    usuario.idUsuario
+                    usuario.idUsuario,
+
+                    idTags
                 );
 
         return await this.buscarPorId(
@@ -681,6 +778,11 @@ class AcompanhamentoService {
             );
         }
 
+        const idTags =
+            await this.validarTags(
+                dados.idTags
+            );
+
         const campos = {};
 
         if (
@@ -716,7 +818,8 @@ class AcompanhamentoService {
 
         if (
             Object.keys(campos)
-                .length === 0
+                .length === 0 &&
+            idTags === undefined
         ) {
             throw new ErroAplicacao(
                 "nada_para_atualizar",
@@ -762,6 +865,20 @@ class AcompanhamentoService {
                             : null
                 }
             );
+
+        if (
+            idTags !== undefined &&
+            typeof this
+                .acompanhamentoRepository
+                .definirTags === "function"
+        ) {
+            await this
+                .acompanhamentoRepository
+                .definirTags(
+                    idAcompanhamento,
+                    idTags
+                );
+        }
 
         return await this.buscarPorId(
             idAcompanhamento,
@@ -948,6 +1065,116 @@ class AcompanhamentoService {
             "perfil_sem_permissao",
             "Este perfil não possui permissão para alterar o status de acompanhamentos.",
             403
+        );
+    }
+
+
+    async ajustarConteudo(
+        usuario,
+        idAcompanhamento,
+        dados
+    ) {
+        if (
+            this.normalizarPerfil(
+                usuario.perfil
+            ) !== "administrador"
+        ) {
+            throw new ErroAplicacao(
+                "perfil_sem_permissao",
+                "Apenas a coordenação pode ajustar o conteúdo de um acompanhamento.",
+                403
+            );
+        }
+
+        const atual =
+            await this
+                .acompanhamentoRepository
+                .buscarPorId(
+                    idAcompanhamento
+                );
+
+        if (!atual) {
+            throw new ErroAplicacao(
+                "acompanhamento_nao_encontrado",
+                "Acompanhamento não encontrado.",
+                404
+            );
+        }
+
+        const statusAtual =
+            this.normalizarStatus(
+                atual.status
+            );
+
+        if (
+            statusAtual !== "ENVIADO_REVISAO" &&
+            statusAtual !== "EM_REVISAO"
+        ) {
+            throw new ErroAplicacao(
+                "acompanhamento_nao_editavel",
+                "Este acompanhamento não pode ser ajustado neste status.",
+                409,
+                {
+                    status:
+                        atual.status
+                }
+            );
+        }
+
+        const campos = {};
+
+        if (
+            dados.descricao !==
+            undefined
+        ) {
+            campos.descricao =
+                dados.descricao;
+        }
+
+        if (
+            dados.media !==
+            undefined
+        ) {
+            campos.media =
+                this.validarMedia(
+                    dados.media
+                );
+        }
+
+        if (
+            Object.keys(campos)
+                .length === 0
+        ) {
+            throw new ErroAplicacao(
+                "nada_para_atualizar",
+                "Informe ao menos um campo para atualizar.",
+                422
+            );
+        }
+
+        await this
+            .acompanhamentoRepository
+            .atualizar(
+                idAcompanhamento,
+                campos,
+                {
+                    registrarHistorico:
+                        true,
+
+                    idUsuario:
+                        usuario.idUsuario,
+
+                    estadoAnterior:
+                        atual.status,
+
+                    observacao:
+                        "Conteúdo ajustado durante a revisão"
+                }
+            );
+
+        return await this.buscarPorId(
+            idAcompanhamento,
+            usuario
         );
     }
 

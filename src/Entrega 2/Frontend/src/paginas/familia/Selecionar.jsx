@@ -42,6 +42,13 @@ export default function Selecionar() {
           </p>
         </div>
 
+        {responsavel.alunos.length === 0 && (
+          <p className="lead" style={{ textAlign: "center", maxWidth: 520 }}>
+            Nenhum aluno foi vinculado a esta conta ainda. Peça à secretaria da escola para
+            autorizar o acesso ao seu filho.
+          </p>
+        )}
+
         <div className="pick-grid">
           {responsavel.alunos.map((id) => {
             const aluno = api.aluno(id);
@@ -58,9 +65,7 @@ export default function Selecionar() {
                   {iniciais(aluno.nome)}
                 </span>
                 <b>{primeiroNome(aluno.nome)}</b>
-                <small>
-                  {turma.nome} · {turma.turno}
-                </small>
+                <small>{turma ? `${turma.nome} · ${turma.turno}` : "Turma não informada"}</small>
                 {novos ? (
                   <span className="status nao-lido">
                     <Icone nome="bell" />

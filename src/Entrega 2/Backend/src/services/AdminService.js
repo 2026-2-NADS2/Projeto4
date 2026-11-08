@@ -697,6 +697,14 @@ class AdminService {
     }
 
     // =====================================================
+    // TAGS
+    // =====================================================
+
+    async listarTags() {
+        return await this.adminRepository.listarTags();
+    }
+
+    // =====================================================
     // ÁREAS
     // =====================================================
 
@@ -964,6 +972,22 @@ class AdminService {
             idAcompanhamento,
             dados.status,
             dados.observacao || null
+        );
+    }
+
+    async ajustarAcompanhamento(usuario, idAcompanhamento, dados) {
+        if (!this.acompanhamentoService) {
+            throw new ErroAplicacao(
+                "servico_indisponivel",
+                "O serviço de acompanhamentos não está disponível.",
+                500
+            );
+        }
+
+        return await this.acompanhamentoService.ajustarConteudo(
+            usuario,
+            idAcompanhamento,
+            dados
         );
     }
 

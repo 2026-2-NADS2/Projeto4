@@ -35,10 +35,10 @@ export default function Documentacao() {
             <span className="ico ico-teal">
               <Icone nome="folder" />
             </span>
-            <h2>Protótipo preservado</h2>
+            <h2>Camada de dados</h2>
             <p className="text-2">
-              A versão em HTML, CSS e JavaScript puro está em <code>legado/prototipo-entrega2</code>,
-              junto da documentação, dos testes e das referências de design.
+              As telas conversam com a API Express por meio de <code>src/servicos/api.js</code>; os
+              arrays de <code>src/dados</code> servem apenas de fallback até a hidratação.
             </p>
           </div>
 
@@ -46,10 +46,10 @@ export default function Documentacao() {
             <span className="ico ico-warn">
               <Icone nome="server" />
             </span>
-            <h2>Próxima etapa: API</h2>
+            <h2>API Express</h2>
             <p className="text-2">
-              As telas usam uma camada de dados simulada, pronta para ser substituída pelas rotas da
-              API Express com autenticação, validação e respostas padronizadas.
+              Rotas protegidas por JWT, validação de campos com respostas padronizadas e testes de
+              integração executados com <code>npm test</code>.
             </p>
           </div>
         </div>

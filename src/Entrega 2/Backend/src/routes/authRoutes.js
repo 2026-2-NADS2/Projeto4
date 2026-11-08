@@ -67,6 +67,28 @@ function criarAuthRoutes(autenticacaoService, autenticar) {
         })
     );
 
+    router.put(
+        "/perfil",
+        autenticar,
+        asyncHandler(async (req, res) => {
+            const dados = validarCampos(req.body, {
+                nome: { tipo: "texto", obrigatorio: true, min: 3, max: 120 },
+                email: { tipo: "email", obrigatorio: true },
+                telefone: { tipo: "texto", max: 20 }
+            });
+
+            const usuario = await autenticacaoService.atualizarPerfil(
+                req.usuario.idUsuario,
+                dados
+            );
+
+            res.json({
+                sucesso: true,
+                dados: { usuario }
+            });
+        })
+    );
+
     return router;
 }
 

@@ -8,7 +8,10 @@ import LayoutApp from "../../componentes/LayoutApp.jsx";
 import Modal from "../../componentes/Modal.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
+import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
+import { hidratar } from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
+import { api as apiServidor } from "../../servicos/api.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 /* ============================ TURMAS ============================ */
@@ -17,28 +20,43 @@ export function Turmas() {
   useTitulo("Turmas");
   const navegar = useNavigate();
   const { avisar } = useAviso();
+  const { usuario } = useAutenticacao();
   const [versao, setVersao] = useState(0);
   const [aberto, setAberto] = useState(false);
-  const [form, setForm] = useState({ nome: "", ano: "", turno: "Manhã", sala: "" });
+  const [enviando, setEnviando] = useState(false);
+  const [form, setForm] = useState({ nome: "", ano: "", turno: "Manhã" });
 
-  function criar(evento) {
+  async function criar(evento) {
     evento.preventDefault();
     if (!form.nome.trim() || !form.ano) {
       avisar("Preencha os campos obrigatórios", "Informe o nome e o ano da turma.", "err");
       return;
     }
-    const nova = {
-      id: `T${Date.now().toString(36).toUpperCase()}`,
-      nome: form.nome.trim(),
-      ano: form.ano,
-      turno: form.turno,
-      sala: form.sala || "A definir",
-    };
-    dados.turmas.push(nova);
-    setVersao((valor) => valor + 1);
-    setAberto(false);
-    avisar("Turma criada", `${nova.nome} foi adicionada ao ano letivo.`, "ok");
-    navegar(`/admin/turmas/${nova.id}`);
+    if (enviando) return;
+
+    setEnviando(true);
+
+    try {
+      const nova = await apiServidor("/admin/turmas", {
+        metodo: "POST",
+        corpo: {
+          nome: form.nome.trim(),
+          anoSerie: form.ano,
+          turno: form.turno,
+          ativo: true,
+        },
+      });
+
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      setAberto(false);
+      avisar("Turma criada", `${nova.nome} foi adicionada ao ano letivo.`, "ok");
+      navegar(`/admin/turmas/${nova.id}`);
+    } catch (erro) {
+      avisar("Não foi possível criar a turma", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -69,7 +87,7 @@ export function Turmas() {
               <div>
                 <b>{turma.ano}</b>
                 <p className="muted" style={{ fontSize: "0.875rem" }}>
-                  {turma.turno} · {turma.sala}
+                  {turma.turno}
                 </p>
               </div>
               <div className="row-between">
@@ -137,12 +155,6 @@ export function Turmas() {
             ]}
             aoMudar={(valor) => setForm((atual) => ({ ...atual, turno: valor }))}
           />
-          <Campo
-            label="Sala"
-            valor={form.sala}
-            placeholder="Ex.: Sala 18"
-            aoMudar={(valor) => setForm((atual) => ({ ...atual, sala: valor }))}
-          />
         </form>
       </Modal>
     </LayoutApp>
@@ -169,7 +181,7 @@ export function TurmaDetalhe() {
             {turma.ano}
           </span>
         }
-        lead={`${turma.turno} · ${turma.sala} · ${alunos.length} alunos matriculados`}
+        lead={`${turma.turno} · ${alunos.length} alunos matriculados`}
         actions={
           <Link className="btn btn-secondary" to="/admin/vinculos">
             <Icone nome="link" /> Gerenciar vínculos
@@ -295,10 +307,12 @@ export function TurmaDetalhe() {
 export function Disciplinas() {
   useTitulo("Disciplinas e tags");
   const { avisar } = useAviso();
+  const { usuario } = useAutenticacao();
   const [aba, setAba] = useState("disc");
   const [versao, setVersao] = useState(0);
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ nome: "", area: "LIN" });
+  const [enviando, setEnviando] = useState(false);
+  const [form, setForm] = useState({ nome: "", area: dados.areas[0]?.id || "" });
   const [novaTag, setNovaTag] = useState({ nome: "", tipo: "Participação" });
 
   const usoDasTags = useMemo(() => {
@@ -311,32 +325,64 @@ export function Disciplinas() {
     return contagem;
   }, [versao]);
 
-  function alternarDisciplina(disciplina) {
-    disciplina.ativa = !disciplina.ativa;
-    setVersao((valor) => valor + 1);
-    avisar(
-      `${disciplina.nome} ${disciplina.ativa ? "ativada" : "desativada"}`,
-      "A mudança vale para novos vínculos e registros.",
-      "info",
-    );
+  async function alternarDisciplina(disciplina) {
+    if (enviando) return;
+    const novoAtivo = !disciplina.ativa;
+    setEnviando(true);
+
+    try {
+      await apiServidor(`/admin/disciplinas/${disciplina.id}`, {
+        metodo: "PUT",
+        corpo: { ativo: novoAtivo },
+      });
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      avisar(
+        `${disciplina.nome} ${novoAtivo ? "ativada" : "desativada"}`,
+        "A mudança vale para novos vínculos e registros.",
+        "info",
+      );
+    } catch (erro) {
+      avisar("Não foi possível alterar a disciplina", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function criarDisciplina(evento) {
+  async function criarDisciplina(evento) {
     evento.preventDefault();
     if (!form.nome.trim()) {
       avisar("Informe o nome", "O nome da disciplina é obrigatório.", "err");
       return;
     }
-    const id = form.nome.trim().slice(0, 3).toUpperCase().replace(/\s/g, "");
-    if (dados.disciplinas.some((disciplina) => disciplina.id === id)) {
-      avisar("Disciplina já existe", "Use outro nome ou edite a disciplina existente.", "err");
+    if (!form.area) {
+      avisar("Selecione a área", "Escolha a área do conhecimento da disciplina.", "err");
       return;
     }
-    dados.disciplinas.push({ id, nome: form.nome.trim(), area: form.area, ativa: true });
-    setVersao((valor) => valor + 1);
-    setModal(null);
-    setForm({ nome: "", area: "LIN" });
-    avisar("Disciplina criada", `${form.nome.trim()} foi adicionada à área.`, "ok");
+    if (enviando) return;
+
+    setEnviando(true);
+
+    try {
+      await apiServidor("/admin/disciplinas", {
+        metodo: "POST",
+        corpo: {
+          idArea: Number(form.area),
+          nome: form.nome.trim(),
+          ativo: true,
+        },
+      });
+
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      setModal(null);
+      setForm({ nome: "", area: dados.areas[0]?.id || "" });
+      avisar("Disciplina criada", `${form.nome.trim()} foi adicionada à área.`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível criar a disciplina", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   function criarTag(evento) {
@@ -539,51 +585,95 @@ export function Disciplinas() {
 
 export function Vinculos() {
   useTitulo("Vínculos");
+  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
-  const [turma, setTurma] = useState("6A");
+  const [turma, setTurma] = useState(() => dados.turmas[0]?.id || "");
   const [versao, setVersao] = useState(0);
+  const [enviando, setEnviando] = useState(false);
   const [disc, setDisc] = useState("");
   const [prof, setProf] = useState("");
 
   const vinculos = dados.vinculos.filter((vinculo) => vinculo.turma === turma);
   const usadas = new Set(vinculos.map((vinculo) => vinculo.disc));
   const disponiveis = dados.disciplinas.filter((disciplina) => disciplina.ativa && !usadas.has(disciplina.id));
-  const elegiveis = dados.professores.filter(
-    (professor) => professor.ativo && professor.disc.includes(disc),
-  );
+  const elegiveis = dados.professores.filter((professor) => professor.ativo);
 
-  function alterarProfessor(vinculo, novoProf) {
-    vinculo.prof = novoProf;
-    setVersao((valor) => valor + 1);
-    avisar("Professor atualizado", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "ok");
+  const anoLetivo =
+    dados.bimestres[0]?.idAnoLetivo || dados.vinculos[0]?.anoLetivo || "";
+
+  async function alterarProfessor(vinculo, novoProf) {
+    if (enviando) return;
+    setEnviando(true);
+
+    try {
+      await apiServidor(`/admin/vinculos/${vinculo.id}`, {
+        metodo: "PUT",
+        corpo: { idProfessor: Number(novoProf) },
+      });
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      avisar("Professor atualizado", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível alterar o professor", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function remover(vinculo) {
-    dados.vinculos.splice(dados.vinculos.indexOf(vinculo), 1);
-    setVersao((valor) => valor + 1);
-    avisar("Vínculo removido", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "warn");
+  async function remover(vinculo) {
+    if (enviando) return;
+    setEnviando(true);
+
+    try {
+      await apiServidor(`/admin/vinculos/${vinculo.id}`, { metodo: "DELETE" });
+      await hidratar(usuario);
+      setVersao((valor) => valor + 1);
+      avisar("Vínculo removido", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "warn");
+    } catch (erro) {
+      avisar("Não foi possível remover o vínculo", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function adicionar(evento) {
+  async function adicionar(evento) {
     evento.preventDefault();
     if (!disc || !prof) {
       avisar("Selecione disciplina e professor", "Os dois campos são obrigatórios.", "err");
+      return;
+    }
+    if (!anoLetivo) {
+      avisar("Ano letivo não encontrado", "Cadastre o ano letivo antes de criar vínculos.", "err");
       return;
     }
     if (dados.vinculos.some((vinculo) => vinculo.turma === turma && vinculo.disc === disc)) {
       avisar("Vínculo duplicado", "Esta disciplina já tem professor nesta turma.", "err");
       return;
     }
-    const professor = api.prof(prof);
-    if (!professor?.disc.includes(disc)) {
-      avisar("Professor incompatível", "O professor não leciona esta disciplina.", "err");
-      return;
+    if (enviando) return;
+    setEnviando(true);
+
+    try {
+      await apiServidor("/admin/vinculos", {
+        metodo: "POST",
+        corpo: {
+          idTurma: Number(turma),
+          idDisciplina: Number(disc),
+          idProfessor: Number(prof),
+          idAnoLetivo: Number(anoLetivo),
+          ativo: true,
+        },
+      });
+      await hidratar(usuario);
+      setDisc("");
+      setProf("");
+      setVersao((valor) => valor + 1);
+      avisar("Vínculo criado", `${api.prof(prof)?.nome} · ${api.disc(disc)?.nome}`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível criar o vínculo", erro.message, "err");
+    } finally {
+      setEnviando(false);
     }
-    dados.vinculos.push({ turma, disc, prof });
-    setDisc("");
-    setProf("");
-    setVersao((valor) => valor + 1);
-    avisar("Vínculo criado", `${professor.nome} · ${api.disc(disc)?.nome}`, "ok");
   }
 
   return (
@@ -644,12 +734,13 @@ export function Vinculos() {
                       id={`prof-${vinculo.disc}`}
                       className="select"
                       value={vinculo.prof}
+                      disabled={enviando}
                       onChange={(evento) => alterarProfessor(vinculo, evento.target.value)}
                     >
                       {dados.professores
                         .filter(
                           (professor) =>
-                            professor.ativo && professor.disc.includes(vinculo.disc),
+                            professor.ativo || professor.id === vinculo.prof,
                         )
                         .map((professor) => (
                           <option key={professor.id} value={professor.id}>
@@ -662,6 +753,7 @@ export function Vinculos() {
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
+                      disabled={enviando}
                       onClick={() => remover(vinculo)}
                     >
                       <Icone nome="x" className="icon-sm" /> Remover
@@ -719,8 +811,12 @@ export function Vinculos() {
               </div>
             </div>
             <div>
-              <button type="submit" className="btn btn-primary" disabled={!disc || !prof}>
-                <Icone nome="link" /> Adicionar vínculo
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!disc || !prof || enviando}
+              >
+                <Icone nome="link" /> {enviando ? "Salvando…" : "Adicionar vínculo"}
               </button>
             </div>
           </form>
@@ -748,14 +844,39 @@ function paraData(texto) {
   return Number.isNaN(data.getTime()) ? null : data;
 }
 
+function paraBanco(texto) {
+  const data = paraData(texto);
+  if (!data) return null;
+  const dia = String(data.getDate()).padStart(2, "0");
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  return {
+    data: `${data.getFullYear()}-${mes}-${dia}`,
+    hora: `${String(data.getHours()).padStart(2, "0")}:${String(data.getMinutes()).padStart(2, "0")}`,
+  };
+}
+
+function dataDaquiA(dias) {
+  const data = new Date();
+  data.setDate(data.getDate() + dias);
+  const dia = String(data.getDate()).padStart(2, "0");
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  return `${data.getFullYear()}-${mes}-${dia}`;
+}
+
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export function Periodos() {
   useTitulo("Períodos");
+  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [periodos, setPeriodos] = useState(() => dados.bimestres.map((item) => ({ ...item })));
   const [reabrir, setReabrir] = useState(null);
   const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  function recarregar() {
+    setPeriodos(dados.bimestres.map((item) => ({ ...item })));
+  }
 
   const aberto = periodos.find((periodo) => periodo.status === "aberto");
 
@@ -765,7 +886,7 @@ export function Periodos() {
     );
   }
 
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
     const invalido = periodos.find((periodo) => !paraData(periodo.ini) || !paraData(periodo.fim));
     if (invalido) {
@@ -785,40 +906,68 @@ export function Periodos() {
       );
       return;
     }
-    periodos.forEach((periodo, indice) => {
-      Object.assign(dados.bimestres[indice], {
-        ini: periodo.ini,
-        fim: periodo.fim,
-        status: periodo.status,
-        rotulo:
-          periodo.status === "aberto"
-            ? "Digitação aberta"
-            : periodo.status === "encerrado"
-              ? "Encerrado"
-              : "Agendado",
-      });
-    });
-    avisar("Períodos salvos", "As datas do calendário letivo foram atualizadas.", "ok");
+    if (enviando) return;
+
+    setEnviando(true);
+
+    try {
+      await Promise.all(
+        periodos.map((periodo) =>
+          apiServidor(`/admin/bimestres/${periodo.id}`, {
+            metodo: "PUT",
+            corpo: {
+              dataInicio: paraBanco(periodo.ini).data,
+              horaInicio: paraBanco(periodo.ini).hora,
+              dataFim: paraBanco(periodo.fim).data,
+              horaFim: paraBanco(periodo.fim).hora,
+            },
+          }),
+        ),
+      );
+
+      await hidratar(usuario);
+      recarregar();
+      avisar("Períodos salvos", "As datas do calendário letivo foram atualizadas.", "ok");
+    } catch (erro) {
+      avisar("Não foi possível salvar os períodos", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function confirmarReabertura(evento) {
+  async function confirmarReabertura(evento) {
     evento.preventDefault();
     if (!motivo.trim()) {
       avisar("Informe o motivo", "A reabertura precisa de justificativa na auditoria.", "err");
       return;
     }
-    setPeriodos((atuais) =>
-      atuais.map((periodo) =>
-        periodo.n === reabrir.n ? { ...periodo, status: "aberto" } : periodo,
-      ),
-    );
-    avisar(
-      "Período reaberto",
-      `${reabrir.n}º bimestre · motivo registrado: ${motivo.trim()}`,
-      "warn",
-    );
-    setReabrir(null);
-    setMotivo("");
+    if (enviando) return;
+
+    setEnviando(true);
+
+    try {
+      await apiServidor(`/admin/bimestres/${reabrir.id}`, {
+        metodo: "PUT",
+        corpo: {
+          dataFim: dataDaquiA(7),
+          horaFim: "23:59",
+        },
+      });
+
+      await hidratar(usuario);
+      recarregar();
+      avisar(
+        "Período reaberto",
+        `${reabrir.n}º bimestre reaberto até ${dataDaquiA(7).split("-").reverse().join("/")}.`,
+        "warn",
+      );
+      setReabrir(null);
+      setMotivo("");
+    } catch (erro) {
+      avisar("Não foi possível reabrir o período", erro.message, "err");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -938,8 +1087,8 @@ export function Periodos() {
                   <Icone nome="refresh" /> Reabrir período
                 </button>
               ) : (
-                <button type="submit" className="btn btn-primary">
-                  <Icone nome="save" /> Salvar datas
+                <button type="submit" className="btn btn-primary" disabled={enviando}>
+                  <Icone nome="save" /> {enviando ? "Salvando…" : "Salvar datas"}
                 </button>
               )}
             </div>

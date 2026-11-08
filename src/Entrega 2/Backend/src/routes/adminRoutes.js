@@ -757,8 +757,48 @@ function criarAdminRoutes(adminService, autenticar) {
     );
 
     // =====================================================
+    // TAGS
+    // =====================================================
+
+    router.get(
+        "/tags",
+        asyncHandler(async (req, res) => {
+            responder(res, await adminService.listarTags());
+        })
+    );
+
+    // =====================================================
     // REVISÃO / PUBLICAÇÃO DE ACOMPANHAMENTOS
     // =====================================================
+
+    router.patch(
+        "/acompanhamentos/:id",
+        asyncHandler(async (req, res) => {
+            const id = validarId(req.params.id, "id");
+
+            const dados = validarCampos(req.body, {
+                descricao: {
+                    tipo: "texto",
+                    min: 1,
+                    max: 2000
+                },
+                media: {
+                    tipo: "numero",
+                    min: 0,
+                    max: 10
+                }
+            });
+
+            responder(
+                res,
+                await adminService.ajustarAcompanhamento(
+                    req.usuario,
+                    id,
+                    dados
+                )
+            );
+        })
+    );
 
     router.patch(
         "/acompanhamentos/:id/status",

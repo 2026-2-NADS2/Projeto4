@@ -20,7 +20,7 @@ export function SeletorAluno({ aluno, responsavel, base }) {
             to={`${base}${base.includes("?") ? "&" : "?"}aluno=${id}`}
             aria-current={id === aluno.id ? "page" : undefined}
           >
-            {primeiroNome(item.nome)} · {turma.nome}
+            {primeiroNome(item.nome)} · {turma ? turma.nome : "Sem turma"}
           </Link>
         );
       })}

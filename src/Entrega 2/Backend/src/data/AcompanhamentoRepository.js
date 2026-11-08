@@ -21,6 +21,15 @@ const CAMPOS_COMPLETOS = `
     ac.media,
     ac.situacao_media,
     ac.status,
+    COALESCE((
+        SELECT json_agg(
+            json_build_object('id', t.id_tag, 'nome', t.nome)
+            ORDER BY t.nome
+        )
+        FROM acompanhamento_tag act
+        JOIN tag t ON t.id_tag = act.id_tag
+        WHERE act.id_acompanhamento = ac.id_acompanhamento
+    ), '[]'::json) AS tags,
     ac.data_criacao,
     ac.data_atualizacao
 `;
@@ -189,7 +198,7 @@ class AcompanhamentoRepository {
         return resultado.rows.length > 0;
     }
 
-    async criar(dados, idUsuario) {
+    async criar(dados, idUsuario, idTags = null) {
         const sql = `
             WITH novo AS (
                 INSERT INTO acompanhamento (
@@ -233,7 +242,57 @@ class AcompanhamentoRepository {
             idUsuario
         ]);
 
-        return resultado.rows[0].id_acompanhamento;
+        const idAcompanhamento =
+            resultado.rows[0].id_acompanhamento;
+
+        if (Array.isArray(idTags) && idTags.length > 0) {
+            await this.definirTags(idAcompanhamento, idTags);
+        }
+
+        return idAcompanhamento;
+    }
+
+    async tagsExistem(idTags) {
+        if (!Array.isArray(idTags) || idTags.length === 0) {
+            return [];
+        }
+
+        const resultado = await this.banco.query(
+            `
+            SELECT id_tag
+            FROM tag
+            WHERE ativo = TRUE
+              AND id_tag = ANY($1::bigint[]);
+            `,
+            [idTags]
+        );
+
+        return resultado.rows.map((linha) => Number(linha.id_tag));
+    }
+
+    async definirTags(idAcompanhamento, idTags) {
+        await this.banco.query(
+            `
+            DELETE FROM acompanhamento_tag
+            WHERE id_acompanhamento = $1;
+            `,
+            [idAcompanhamento]
+        );
+
+        if (!Array.isArray(idTags) || idTags.length === 0) {
+            return;
+        }
+
+        await this.banco.query(
+            `
+            INSERT INTO acompanhamento_tag (
+                id_acompanhamento,
+                id_tag
+            )
+            SELECT $1, unnest($2::bigint[]);
+            `,
+            [idAcompanhamento, idTags]
+        );
     }
 
     async atualizar(idAcompanhamento, campos, opcoes = {}) {

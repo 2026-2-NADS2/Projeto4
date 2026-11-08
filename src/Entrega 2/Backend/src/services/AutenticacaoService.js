@@ -28,6 +28,7 @@ class AutenticacaoService {
             email: usuario.email,
             perfil,
             ativo: usuario.ativo,
+            telefone: usuario.telefone ?? null,
             professorId: null,
             responsavelId: null
         };
@@ -50,6 +51,83 @@ class AutenticacaoService {
         }
 
         return dados;
+    }
+
+    // Contas antigas de responsável podem existir só em "usuario".
+    // Cria o registro em "responsavel" na primeira autenticação.
+    async garantirResponsavel(usuario) {
+        if (!this.responsavelRepository) return;
+        if (perfilParaApi(usuario.perfil) !== "responsavel") return;
+
+        const existente =
+            await this.responsavelRepository.buscarPorUsuario(
+                usuario.idUsuario
+            );
+
+        if (existente) return;
+
+        try {
+            await this.responsavelRepository.criarPorUsuario(
+                usuario.idUsuario
+            );
+        } catch (erro) {
+            // Outra requisição pode ter criado o registro ao mesmo tempo.
+            if (!erro || erro.code !== "23505") throw erro;
+        }
+    }
+
+    // Atualização dos próprios dados (nome, e-mail e telefone).
+    async atualizarPerfil(idUsuario, dados) {
+        const usuario = await this.usuarioRepository.buscarPorId(idUsuario);
+
+        if (!usuario) {
+            throw new ErroAplicacao("sem_conta", "Conta não encontrada.", 404);
+        }
+
+        const nome = dados.nome === undefined ? usuario.nome : dados.nome;
+        const email = dados.email === undefined ? usuario.email : dados.email;
+        const telefone = dados.telefone
+            ? String(dados.telefone).trim()
+            : null;
+
+        if (
+            String(email).toLowerCase() !==
+            String(usuario.email).toLowerCase()
+        ) {
+            const existente = await this.usuarioRepository.buscarPorEmail(email);
+
+            if (existente && existente.idUsuario !== usuario.idUsuario) {
+                throw new ErroAplicacao(
+                    "email_em_uso",
+                    "Já existe uma conta com este e-mail.",
+                    409,
+                    { email: "Já existe uma conta com este e-mail." }
+                );
+            }
+        }
+
+        const atualizado = await this.usuarioRepository.atualizarPerfil(
+            idUsuario,
+            { nome, email, telefone }
+        );
+
+        if (!atualizado) {
+            throw new ErroAplicacao("sem_conta", "Conta não encontrada.", 404);
+        }
+
+        // Mantém a tabela usada pelo backoffice em sincronia.
+        if (
+            perfilParaApi(atualizado.perfil) === "responsavel" &&
+            this.responsavelRepository &&
+            this.responsavelRepository.atualizarTelefonePorUsuario
+        ) {
+            await this.responsavelRepository.atualizarTelefonePorUsuario(
+                idUsuario,
+                telefone
+            );
+        }
+
+        return await this.montarUsuarioPublico(atualizado);
     }
 
     async validarCredenciais(email, senha, perfilSolicitado = null) {
@@ -109,6 +187,8 @@ class AutenticacaoService {
             perfilSolicitado
         );
 
+        await this.garantirResponsavel(usuario);
+
         return {
             token: this.tokenService.emitir(usuario),
             usuario: await this.montarUsuarioPublico(usuario)
@@ -150,6 +230,8 @@ class AutenticacaoService {
                 perfil: perfilParaBanco(perfilNormalizado)
             });
 
+            await this.garantirResponsavel(usuario);
+
             return await this.montarUsuarioPublico(usuario);
         } catch (erro) {
             if (erro && erro.code === "23505") {
@@ -182,6 +264,8 @@ class AutenticacaoService {
                 401
             );
         }
+
+        await this.garantirResponsavel(usuario);
 
         return await this.montarUsuarioPublico(usuario);
     }

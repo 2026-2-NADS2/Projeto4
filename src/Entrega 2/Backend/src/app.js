@@ -69,7 +69,7 @@ function criarApp(dependencias) {
     );
     app.use(
         "/api",
-        criarCatalogoRoutes(bimestreRepository, autenticar)
+        criarCatalogoRoutes(bimestreRepository, autenticar, adminService)
     );
 
     const caminhoFrontend =
