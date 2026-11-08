@@ -1,13 +1,13 @@
 # KFKA — Frontend da Entrega 2
 
-Versão em **React + Vite** do protótipo navegável do KFKA (acompanhamento escolar
-bimestral). A identidade visual, os fluxos e os dados fictícios da Entrega 2 foram
-preservados; a navegação passou de hash (`#/...`) para URLs reais com React Router.
+Aplicação em **React + Vite** do KFKA (acompanhamento escolar bimestral), migrada do
+protótipo navegável da Entrega 2. A identidade visual e os fluxos foram preservados; a
+navegação usa URLs reais com React Router.
 
-> **Estado atual:** frontend funcional com dados simulados em memória. A API
-> Express/PostgreSQL da Entrega 2 já está implementada em `../Backend`, mas as telas
-> ainda não consomem esses endpoints — a camada de dados é o ponto de troca para a
-> integração (veja [Integração com o back-end](#integração-com-o-back-end)).
+> **Estado atual:** integrado à API Express/PostgreSQL de `../Backend`. Login, perfil,
+> Estrutura, Registros, Revisão e CRUD de alunos persistem no banco; os arrays de
+> `src/dados/dados.js` servem apenas de fallback até a hidratação inicial
+> (`src/dados/carregarDados.js`). Publicado na Vercel.
 
 ---
 
@@ -77,8 +77,11 @@ src/
 │   ├── AvisoContexto.jsx         # Toasts globais
 │   └── TemaContexto.jsx          # Tema claro/escuro/sistema e acessibilidade
 ├── dados/
-│   ├── dados.js             # "API" simulada + dados fictícios da escola
+│   ├── dados.js             # Dados de fallback + helpers de leitura (api.*)
+│   ├── carregarDados.js     # Hidratação dos arrays com os dados da API
 │   └── status.js            # Rótulos, ícones e cores dos status
+├── servicos/
+│   └── api.js               # Cliente HTTP (token, envelope de erro, VITE_API_URL)
 ├── paginas/
 │   ├── publico/             # Início, login, cadastro, documentos, erros
 │   ├── admin/               # Coordenação
@@ -159,105 +162,70 @@ ao responsável e com status `publicado`; qualquer outro caso redireciona para
 
 ---
 
-## Contas de teste
+## Contas de acesso
 
-Senha de todas as contas fictícias: **`kfka2026`**.
+Não há contas embutidas no frontend. O login valida e-mail e senha na API; as contas
+precisam existir no PostgreSQL — criadas pelo cadastro público de responsável ou pelo
+backoffice de administrador (`npm run criar-admin` no backend).
 
-| Perfil | E-mail | Observação |
-| --- | --- | --- |
-| Administrador | `marina.rocha@aurora.edu.br` | Coordenação pedagógica |
-| Professor | `carlos.lima@aurora.edu.br` | Matemática e Geografia (p1) |
-| Responsável | `ana.souza@email.com` | Ana Souza, responsável por Lucas e Júlia |
-
-Essas credenciais valem apenas para o **mock do frontend**. O back-end não possui
-seed embutido: as contas reais dependem dos dados já existentes no PostgreSQL.
-O login é específico por perfil: entrar com as credenciais certas na aba errada é
-recusado pelo mock e também pela API (`outro_perfil`). Contas criadas em
-`/criar-conta` no mock existem apenas em memória; na API, o cadastro público cria
-somente `responsavel` e persiste no banco.
+O login é específico por perfil: credenciais usadas na aba errada são recusadas pela API
+com o código `outro_perfil`. O cadastro público cria apenas usuários do tipo
+`responsavel`.
 
 ---
 
-## Autenticação e dados (simulação)
+## Autenticação e dados
 
-- `src/dados/dados.js` concentra os dados fictícios (escola Aurora 2026, turmas,
-  alunos, relatórios etc.) e uma API síncrona (`api.*`) que imita o futuro back-end.
-- O contexto de autenticação valida e-mail/senha na lista em memória e grava a sessão
-  em `sessionStorage` na chave `kfka-sessao`.
+- `src/servicos/api.js` é o cliente HTTP único: injeta `Authorization: Bearer <token>`,
+  centraliza a URL base (`VITE_API_URL`) e converte o envelope de erro da API em exceção.
+- `AutenticacaoContexto` chama `POST /auth/login`, guarda o token (`kfka.token`) e a
+  sessão (`kfka-sessao`, em `sessionStorage` e, com "Lembrar de mim", `localStorage`).
+- `src/dados/carregarDados.js` hidrata os arrays de `dados.js` com os endpoints da API
+  (alunos, acompanhamentos, turmas, disciplinas, bimestres, tags e vínculos).
 - `RotaProtegida` bloqueia rotas por perfil; sem sessão, redireciona para
   `/entrar/:perfil`.
 - Preferências de tema/texto ficam em `localStorage` na chave `kfka-prefs`.
-- **Nada é persistido em servidor.** Recarregar a página restaura os dados originais
-  do mock (a sessão e as preferências permanecem).
-
-Esse comportamento é intencional para a demonstração. A senha de teste e a "API"
-local não são um modelo de segurança e devem ser substituídas na integração.
+- O array de `dados.js` permanece como fallback até a primeira hidratação; depois disso,
+  o que aparece na tela vem do banco.
 
 ---
 
-## Integração com o back-end
+## Integração com a API
 
-Pontos de troca previstos:
+A integração está implementada:
 
-1. **Camada de dados** — substituir as chamadas síncronas de `src/dados/dados.js`
-   por `fetch` para as rotas Express, preferencialmente com um cliente HTTP único
-   (`src/servicos/api.js`) que:
-   - injeta `Authorization: Bearer <token>`;
-   - converte o envelope de erro (`{ sucesso: false, erro: { codigo, mensagem,
-     detalhes } }`) em exceções;
-   - centraliza a URL base (`import.meta.env.VITE_API_URL`);
-   - limpa a sessão e redireciona para `/entrar/:perfil` ao receber 401.
-2. **Autenticação** — `AutenticacaoContexto` deve chamar
-   `POST /api/auth/login` com `{ email, senha, perfil }`, guardar o token e buscar
-   o usuário em `GET /api/auth/me`. O back-end devolve `professorId` ou
-   `responsavelId` no usuário. Mapear os códigos `sem_conta`, `senha`,
-   `outro_perfil` e `usuario_inativo` para os códigos internos já usados nas telas
-   (`sem-conta`, `senha`, `outro-perfil`).
-3. **Sessão** — trocar `kfka-sessao` (objeto completo do mock) por token + dados
-   mínimos do usuário. O guard `RotaProtegida` continua igual.
-4. **Dados** — os endpoints disponíveis hoje são `GET/POST /api/acompanhamentos`,
-   `GET /api/acompanhamentos/:id`, `PATCH /api/acompanhamentos/:id`,
-   `GET /api/alunos`, `GET /api/alunos/:id`, `GET /api/professores`,
-   `GET /api/professores/me/vinculos` e `GET /api/bimestres`. A criação de
-   acompanhamento exige `idAluno`, `idVinculo`, `idBimestre`, `descricao` e
-   `media`; o vínculo vem de `/api/professores/me/vinculos`.
-5. **Família** — manter a regra de visibilidade no servidor: o endpoint de
-   acompanhamentos do responsável só devolve alunos vinculados e registros
-   `PUBLICADO`. O frontend não deve ser a única barreira.
-6. **Formatação** — o back-end já normaliza `media` para número (ou `null`),
-   `status` para minúsculo e datas para ISO. Ainda assim, normalize no cliente
-   HTTP antes de renderizar (`fmtMedia`, `fmtData`) para não depender do formato
-   da coluna `numeric` do PostgreSQL.
+- **Camada HTTP:** `src/servicos/api.js`.
+- **Hidratação:** `src/dados/carregarDados.js` (`hidratar(sessao)`) substitui os arrays
+  fictícios pelos dados reais após o login.
+- **Fluxos persistidos:** login/perfil (incluindo telefone), Estrutura (turmas,
+  disciplinas, vínculos e períodos), Registros do professor (rascunho, envio e tags),
+  Revisão do administrador (iniciar, ajustar conteúdo, devolver, cancelar e publicar) e
+  CRUD de alunos (criar/editar/inativar/ativar, matrícula e responsáveis).
+- **Família:** a API só devolve acompanhamentos publicados dos alunos vinculados ao
+  responsável; o frontend não é a única barreira.
+- **Formato:** a API devolve DTOs aninhados em camelCase; o mapeamento para o formato das
+  telas fica em `carregarDados.js`.
+- **Sessão:** token em `kfka.token` e dados mínimos do usuário em `kfka-sessao`; o guard
+  `RotaProtegida` continua igual.
 
-### Conflitos e cuidados previstos
+### Cuidados de produção
 
-- **URLs antigas com hash** (`#/entrar`) deixam de funcionar; links e favoritos
-  precisam usar as rotas novas.
-- **SPA fallback em produção:** o `BrowserRouter` exige que o servidor devolva
-  `index.html` para rotas desconhecidas. Isso já está implementado em
-  `../Backend/src/app.js` com `express.static(dist)` + middleware após as rotas.
-  Não use `app.get("*")`: a sintaxe é inválida no Express 5.
-- **Prefixo `/api`:** o proxy do Vite e o Express usam `/api` sem `rewrite`. Se um
-  dos dois mudar, ajuste o outro; caso contrário o front chamará caminhos errados.
-- **CORS:** com proxy no desenvolvimento e front/back no mesmo domínio em produção,
-  não é necessário. Se os domínios forem diferentes, configure `CORS_ORIGIN` no
-  back-end com a origem exata; não use `*` com cookies.
-- **Login por perfil:** o back-end já recusa o perfil errado com
-  `403 outro_perfil` e devolve o perfil correto em `detalhes.perfil`. Traduza esse
-  código para a mensagem de "outro perfil" já exibida pelas telas.
-- **Cadastro:** o back-end só permite cadastro público de `responsavel`; as telas
-  de cadastro de administrador/professor do mock não têm endpoint correspondente.
-- **Formato dos dados:** o back-end devolve DTOs aninhados e camelCase, diferentes
-  do mock. Faça um mapeamento explícito por endpoint em vez de espalhar `if` pelas
-  páginas.
+- **SPA fallback:** as rotas usam `BrowserRouter`, então o servidor precisa devolver
+  `index.html` para URLs internas. Na Vercel isso é feito pelo `vercel.json`; localmente,
+  pelo `express.static(dist)` em `../Backend/src/app.js`. Não use `app.get("*")`: a
+  sintaxe é inválida no Express 5.
+- **Prefixo `/api`:** o proxy do Vite e as rotas do Express usam `/api` sem `rewrite`.
+  Mantenha os dois alinhados.
+- **CORS:** com o frontend na Vercel e a API no Railway, configure `CORS_ORIGIN` no
+  back-end com a origem exata (sem barra no final); não use `*`.
+- **Cadastro:** a API só permite cadastro público de `responsavel`; contas de
+  administrador/professor são criadas pelo backoffice.
 - **`?dados=pior`:** `dados.js` lê `location.search` no carregamento do módulo para
-  alternar o cenário de demonstração. Esse acesso deve sair quando a camada mock for
-  removida.
-- **Bundle:** o build atual gera um chunk JS >500 kB (aviso do Vite, não erro).
-  Considere `React.lazy` por área ou ajuste de `build.chunkSizeWarningLimit`.
-- **`.env` do repositório:** o back-end usa um `.env` real que não deve ser
-  versionado nem exposto. O frontend deve ter seu próprio `.env` baseado em
-  `.env.example`, sem segredos.
+  alternar o cenário de teste de design. É um recurso de desenvolvimento, fora do uso normal.
+- **Bundle:** as rotas usam `React.lazy`/`Suspense`, então cada tela tem seu próprio
+  chunk; o pacote inicial fica em torno de 308 kB (98 kB gzip).
+- **`.env`:** o repositório mantém apenas `.env.example`; credenciais e segredos ficam
+  nas variáveis dos provedores, nunca no bundle.
 
 ---
 
@@ -292,4 +260,4 @@ npm run preview   # conferência local
 - O Express da Entrega 2 também consegue servir `../Frontend/dist` localmente, com
   `express.static` e fallback de SPA (`../Backend/src/app.js`), mas em produção o frontend é
   servido pela Vercel.
-- O passo a passo completo de publicação está em [`../DEPLOY.md`](../DEPLOY.md).
+- O registro de como o deploy foi feito está em [`../DEPLOY.md`](../DEPLOY.md).

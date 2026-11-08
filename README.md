@@ -27,33 +27,35 @@ Este projeto tem como objetivo desenvolver uma plataforma web responsiva que apo
 ---
 ```text
 Raiz
-|
-|--> documentos
-|   |--> PI_2ADS_202602_KFKA.pdf (Documento do projeto interdisciplinar)
-|   |--> modelo-dados (Modelo conceitual/lógico/físico do banco)
-|   |--> arquitetura (Diagramas de arquitetura e classes)
-|   |--> backlog.md (Backlog e critérios de aceitação)
-|
-|--> design
-|   |--> figma (Link/export do protótipo e design system)
-|   |--> guia-de-estilo.pdf
-|
-|--> backend
-|   |--> src (API Node.js/Express)
-|   |--> database (schema.sql e scripts de carga)
-|   |--> .env.example
-|   |--> postman (Collection exportada .json)
-|
-|--> frontend
-|   |--> src (Componentes, páginas e serviços de API)
-|   |--> public
-|   |--> .env.example
-|
-|--> testes
-|   |--> evidencias (prints/vídeos de execução)
-|
-|--> README.md (Guia geral do projeto)
+├── Documentos/
+│   ├── Entrega 1/
+│   │   ├── BD/
+│   │   ├── Desenvolvimento web fullstack/
+│   │   ├── Design de Interface Digital/
+│   │   ├── Estrutura de dados/
+│   │   └── POO/
+│   └── Entrega 2/
+│       ├── BD/
+│       ├── Desenvolvimento web fullstack/
+│       ├── Design de Interface Digital/
+│       ├── Estrutura de dados/
+│       └── POO/
+├── Imagens/
+├── src/
+│   ├── Entrega 1/
+│   │   ├── Backend/    # Node.js + Express + PostgreSQL
+│   │   └── Frontend/   # React + Vite (dados simulados)
+│   └── Entrega 2/
+│       ├── Backend/    # Node.js + Express + PostgreSQL + JWT
+│       ├── Frontend/   # React + Vite integrado à API
+│       └── DEPLOY.md   # como o deploy foi feito
+├── .gitignore
+└── README.md (Guia geral do projeto)
 ```
+
+Os dois backends usam **Node.js com Express** e **PostgreSQL**. Na Entrega 2, o frontend React
+consome a API e os dados persistem no banco; a Entrega 1 mantém a camada simulada do protótipo.
+
 ---
  
 ## 🔄 Fluxo do Sistema
@@ -105,7 +107,8 @@ Relacionamentos:
 - Acompanhamento está associado a um único Aluno, Turma, Disciplina, Professor, Bimestre e Ano Letivo
 - Acompanhamento pode possuir múltiplas Tags
 - Histórico registra as transições de estado de cada Acompanhamento
-Modelo conceitual/lógico/físico documentado na pasta `documentos/modelo-dados`.
+Modelo conceitual/lógico/físico e scripts SQL documentados em
+`Documentos/Entrega 1/BD` e `Documentos/Entrega 2/BD`.
  
 ---
  
@@ -116,7 +119,7 @@ Protótipo navegável e design system desenvolvidos no Figma, cobrindo:
 - Módulo Administrador (cadastros, fila de revisão, relatórios)
 - Módulo Professor (registro de acompanhamento)
 - Módulo Pai/Responsável (consulta e geração de PDF)
-Link do protótipo: `[inserir link do Figma]`
+Links do Figma: [Design de Interface Digital — Entrega 2](<Documentos/Entrega 2/Design de Interface Digital/README.md>).
  
 ---
  
@@ -143,7 +146,7 @@ npm run dev
 - **API (Railway):** <https://projeto4-production.up.railway.app/api>
 - **Banco:** PostgreSQL no Neon
 
-O passo a passo de publicação (variáveis de ambiente, CORS e deploy) está em
+O registro de como o deploy foi feito (arquitetura, configuração e verificações) está em
 [`src/Entrega 2/DEPLOY.md`](<src/Entrega 2/DEPLOY.md>).
 
 ---

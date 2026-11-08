@@ -32,7 +32,7 @@ Publicada em dois serviços:
 - **API (Railway):** <https://projeto4-production.up.railway.app> — healthcheck em `/api/status`
 - **Banco:** PostgreSQL no Neon, acessado apenas pela API
 
-O Express mantém a API em `/api` e o frontend é servido pela Vercel, com `CORS_ORIGIN` restringindo as origens permitidas. O passo a passo completo está em [`../DEPLOY.md`](../DEPLOY.md).
+O Express mantém a API em `/api` e o frontend é servido pela Vercel, com `CORS_ORIGIN` restringindo as origens permitidas. O registro de como o deploy foi feito está em [`../DEPLOY.md`](../DEPLOY.md).
 
 ## Como executar
 
