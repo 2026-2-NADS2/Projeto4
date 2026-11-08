@@ -1,55 +1,65 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import RotaProtegida from "./componentes/RotaProtegida.jsx";
-import Auditoria from "./paginas/admin/Auditoria.jsx";
-import {
-  AlunoForm,
-  Alunos,
-  ProfessorForm,
-  Professores,
-  ResponsavelForm,
-  Responsaveis,
-} from "./paginas/admin/Cadastros.jsx";
-import {
-  Disciplinas,
-  Periodos,
-  TurmaDetalhe as AdminTurmaDetalhe,
-  Turmas as AdminTurmas,
-  Vinculos,
-} from "./paginas/admin/Estrutura.jsx";
-import AdminPainel from "./paginas/admin/Painel.jsx";
-import Relatorios from "./paginas/admin/Relatorios.jsx";
-import { RevisaoDetalhe, RevisaoLista } from "./paginas/admin/Revisao.jsx";
-import Configuracoes from "./paginas/comuns/Configuracoes.jsx";
-import Perfil from "./paginas/comuns/Perfil.jsx";
-import HistoricoFamilia from "./paginas/familia/Historico.jsx";
-import Imprimir from "./paginas/familia/Imprimir.jsx";
-import PainelFamilia from "./paginas/familia/Painel.jsx";
-import { RelatorioDetalhe, RelatoriosFamilia } from "./paginas/familia/Relatorios.jsx";
-import Selecionar from "./paginas/familia/Selecionar.jsx";
-import ProfessorPainel from "./paginas/professor/Painel.jsx";
-import {
-  RegistroDetalhe,
-  RegistroForm,
-  RegistroPrevia,
-  Registros as ProfessorRegistros,
-} from "./paginas/professor/Registros.jsx";
-import {
-  AlunoDetalhe as ProfessorAlunoDetalhe,
-  TurmaDetalhe as ProfessorTurmaDetalhe,
-  Turmas as ProfessorTurmas,
-} from "./paginas/professor/Turmas.jsx";
-import AcessoNegado from "./paginas/publico/AcessoNegado.jsx";
-import Cadastro from "./paginas/publico/Cadastro.jsx";
-import CriarConta from "./paginas/publico/CriarConta.jsx";
-import Documentacao from "./paginas/publico/Documentacao.jsx";
-import Entrar from "./paginas/publico/Entrar.jsx";
-import Inicio from "./paginas/publico/Inicio.jsx";
-import Login from "./paginas/publico/Login.jsx";
-import NaoEncontrada from "./paginas/publico/NaoEncontrada.jsx";
-import Privacidade from "./paginas/publico/Privacidade.jsx";
-import RecuperarSenha from "./paginas/publico/RecuperarSenha.jsx";
-import SessaoExpirada from "./paginas/publico/SessaoExpirada.jsx";
+
+// Cada rota carrega seu próprio chunk: o pacote inicial fica só com React,
+// Router e o esqueleto das rotas, e a tela abre sob demanda.
+function pagina(carregar, nome) {
+  return lazy(() =>
+    carregar().then((modulo) => ({ default: nome ? modulo[nome] : modulo.default })),
+  );
+}
+
+const carregarCadastros = () => import("./paginas/admin/Cadastros.jsx");
+const carregarEstrutura = () => import("./paginas/admin/Estrutura.jsx");
+const carregarRevisao = () => import("./paginas/admin/Revisao.jsx");
+const carregarRegistros = () => import("./paginas/professor/Registros.jsx");
+const carregarTurmasProfessor = () => import("./paginas/professor/Turmas.jsx");
+const carregarRelatoriosFamilia = () => import("./paginas/familia/Relatorios.jsx");
+
+const Auditoria = pagina(() => import("./paginas/admin/Auditoria.jsx"));
+const AlunoForm = pagina(carregarCadastros, "AlunoForm");
+const Alunos = pagina(carregarCadastros, "Alunos");
+const ProfessorForm = pagina(carregarCadastros, "ProfessorForm");
+const Professores = pagina(carregarCadastros, "Professores");
+const ResponsavelForm = pagina(carregarCadastros, "ResponsavelForm");
+const Responsaveis = pagina(carregarCadastros, "Responsaveis");
+const Disciplinas = pagina(carregarEstrutura, "Disciplinas");
+const Periodos = pagina(carregarEstrutura, "Periodos");
+const AdminTurmaDetalhe = pagina(carregarEstrutura, "TurmaDetalhe");
+const AdminTurmas = pagina(carregarEstrutura, "Turmas");
+const Vinculos = pagina(carregarEstrutura, "Vinculos");
+const AdminPainel = pagina(() => import("./paginas/admin/Painel.jsx"));
+const Relatorios = pagina(() => import("./paginas/admin/Relatorios.jsx"));
+const RevisaoDetalhe = pagina(carregarRevisao, "RevisaoDetalhe");
+const RevisaoLista = pagina(carregarRevisao, "RevisaoLista");
+const Configuracoes = pagina(() => import("./paginas/comuns/Configuracoes.jsx"));
+const Perfil = pagina(() => import("./paginas/comuns/Perfil.jsx"));
+const HistoricoFamilia = pagina(() => import("./paginas/familia/Historico.jsx"));
+const Imprimir = pagina(() => import("./paginas/familia/Imprimir.jsx"));
+const PainelFamilia = pagina(() => import("./paginas/familia/Painel.jsx"));
+const RelatorioDetalhe = pagina(carregarRelatoriosFamilia, "RelatorioDetalhe");
+const RelatoriosFamilia = pagina(carregarRelatoriosFamilia, "RelatoriosFamilia");
+const Selecionar = pagina(() => import("./paginas/familia/Selecionar.jsx"));
+const ProfessorPainel = pagina(() => import("./paginas/professor/Painel.jsx"));
+const RegistroDetalhe = pagina(carregarRegistros, "RegistroDetalhe");
+const RegistroForm = pagina(carregarRegistros, "RegistroForm");
+const RegistroPrevia = pagina(carregarRegistros, "RegistroPrevia");
+const ProfessorRegistros = pagina(carregarRegistros, "Registros");
+const ProfessorAlunoDetalhe = pagina(carregarTurmasProfessor, "AlunoDetalhe");
+const ProfessorTurmaDetalhe = pagina(carregarTurmasProfessor, "TurmaDetalhe");
+const ProfessorTurmas = pagina(carregarTurmasProfessor, "Turmas");
+const AcessoNegado = pagina(() => import("./paginas/publico/AcessoNegado.jsx"));
+const Cadastro = pagina(() => import("./paginas/publico/Cadastro.jsx"));
+const CriarConta = pagina(() => import("./paginas/publico/CriarConta.jsx"));
+const Documentacao = pagina(() => import("./paginas/publico/Documentacao.jsx"));
+const Entrar = pagina(() => import("./paginas/publico/Entrar.jsx"));
+const Inicio = pagina(() => import("./paginas/publico/Inicio.jsx"));
+const Login = pagina(() => import("./paginas/publico/Login.jsx"));
+const NaoEncontrada = pagina(() => import("./paginas/publico/NaoEncontrada.jsx"));
+const Privacidade = pagina(() => import("./paginas/publico/Privacidade.jsx"));
+const RecuperarSenha = pagina(() => import("./paginas/publico/RecuperarSenha.jsx"));
+const SessaoExpirada = pagina(() => import("./paginas/publico/SessaoExpirada.jsx"));
 
 function ScrollAoTopo() {
   const { pathname } = useLocation();
@@ -59,11 +69,20 @@ function ScrollAoTopo() {
   return null;
 }
 
+function Carregando() {
+  return (
+    <div style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
+      <p className="text-2">Carregando…</p>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <>
       <ScrollAoTopo />
-      <Routes>
+      <Suspense fallback={<Carregando />}>
+        <Routes>
         {/* Público */}
         <Route path="/" element={<Inicio />} />
         <Route path="/entrar" element={<Entrar />} />
@@ -406,7 +425,8 @@ export default function App() {
         />
 
         <Route path="*" element={<NaoEncontrada />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </>
   );
 }
