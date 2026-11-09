@@ -31,19 +31,14 @@ Cada disciplina possui abaixo seu respectivo registro. Quando aplicável, as dec
 
 | **Campo** | **Descrição** |
 | --- | --- |
-| **Aluno(s) Responsável(veis)** | **[preencher]** |
-| **Ferramenta utilizada** | [preencher] |
-| **Versão/modelo** | [preencher] |
+| **Aluno(s) Responsável(veis)** | Pedro Henrique Santos da Silva — RA 26028948 |
+| **Ferramenta utilizada** | **Entrega 1:** ChatGPT (Codex).<br>**Entrega 2:** Claude Code (Harness). |
+| **Versão/modelo** | **Entrega 1:** Codex.<br>**Entrega 2:** DeepSeek-Flash. |
 | **Disciplina / Trabalho** | Desenvolvimento Web Fullstack – Projeto Interdisciplinar KFKA: Acompanhamento Escolar – Entregas 1 e 2 |
-| **Finalidade de uso** | [preencher – descrever como a ferramenta foi utilizada como apoio ao desenvolvimento] |
-| **Prompts principais utilizados** | [preencher – resumir os principais tipos de solicitações realizadas à ferramenta] |
-| **Trechos ou entregas afetadas** | [preencher – indicar arquivos, funcionalidades, documentação ou partes do projeto afetadas] |
-
-### Declarações completas
-
-- [Entrega 1 – adicionar declaração](./Desenvolvimento%20web%20fullstack/[preencher])
-- [Entrega 2 – adicionar declaração](./Desenvolvimento%20web%20fullstack/[preencher])
-
+| **Finalidade de uso** | **Entrega 1:** apoio à implementação e compreensão do frontend em React/Vite, incluindo páginas baseadas no Figma, componentes, responsividade, navegação, rotas, dados mockados assíncronos, estados de carregamento e erro e validação de formulário.<br>**Entrega 2:** apoio à geração e revisão de código, correção de erros, integração entre frontend e API, funcionalidades de backend, testes, configuração de deploy e revisão da documentação técnica. O código e o conteúdo foram revisados e testados, e as decisões e a responsabilidade final pelo trabalho permaneceram com os responsáveis pelo projeto. |
+| **Prompts principais utilizados** | **Entrega 1:** implementação das páginas a partir do Figma; análise da estrutura de pastas e explicação de páginas, componentes e serviços; orientação sobre estilos, temas e responsividade; análise e orientação para corrigir filtros; explicação sobre dados mockados e validação do formulário.<br>**Entrega 2:** análise de requisitos; orientação e implementação de funcionalidades administrativas e autenticação; integração do frontend com a API e o banco; depuração de erros de SQL, React, CORS e deploy; verificação de persistência; auditoria de arquivos e redundâncias; preparação do deploy e revisão da documentação. |
+| **Trechos ou entregas afetadas** | **Entrega 1:** frontend React/Vite — landing page, seleção de perfil, login e dashboards; componentes compartilhados; navegação, controle de acesso visual e rota inexistente; serviço de dados mockados; estados de carregamento e erro; formulário com validação; CSS e responsividade.<br>**Entrega 2:** backend Node.js/Express/PostgreSQL — rotas, serviços, repositórios, autenticação JWT/bcrypt, CRUD administrativo e fluxo de acompanhamentos; testes automatizados; integração da API no frontend; configuração de deploy e variáveis/CORS; READMEs e registro de deploy. |
+| **Declarações completas** | [Entrega 1 – declaração assinada (PDF)](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%202/Desenvolvimento%20web%20fullstack/Ficha_de_Declaracao_Uso_IA_-_FECAP_assinado%20Entrega_1.pdf)<br>[Entrega 2 – declaração assinada (PDF)](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%202/Desenvolvimento%20web%20fullstack/Ficha_de_Declaracao_Uso_IA_-_FECAP_assinado_Entrega_2.pdf) |
 ---
 
 # Design de Interface Digital
