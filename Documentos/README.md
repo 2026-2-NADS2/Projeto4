@@ -98,8 +98,8 @@ Cada disciplina possui abaixo seu respectivo registro. Quando aplicável, as dec
 
 ### Declarações completas
 
-- [Declaração de Uso de IA – POO – Entrega 1](./POO/Declaracao_IA_POO_Entrega1_Caua.docx)
-- [Declaração de Uso de IA – POO – Entrega 2](./POO/Declaracao_IA_POO_Entrega2_Caua.docx)
+- [Declaração de Uso de IA – POO – Entrega 1](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%201/POO/Declaracao_IA_POO_Entrega1_Caua.do)
+- [Declaração de Uso de IA – POO – Entrega 2](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%202/POO/Declaracao_IA_POO_Entrega2_Caua.do)
 
 ---
 
