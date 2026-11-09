@@ -1,152 +1,471 @@
-# Projeto4
-Projeto 4
+# Projeto 4 — COMMIT
 
-# FECAP - Fundação de Comércio Álvares Penteado
- 
 <p align="center">
-  <img width="225" height="225" alt="Fecap_imagem" src="https://github.com/user-attachments/assets/24c0ce36-f452-400a-9a6b-e71baa5f05f4" />
+  <img width="225" height="225" alt="FECAP" src="https://github.com/user-attachments/assets/24c0ce36-f452-400a-9a6b-e71baa5f05f4" />
 </p>
-## KFKA - Plataforma de Acompanhamento Escolar
- 
-## Grupo COMMIT / Projeto Interdisciplinar
- 
-**Integrantes:** [Paulo Miguel Miranda Marcelli](https://www.linkedin.com/in/paulo-marcelli-06a7bb304/), [Cauã Santos Nascimento](https://www.linkedin.com/in/caua-nascimento/), [Pedro Henrique Santos da Silva](https://www.linkedin.com/in/pedrossilva15/), [Leonardo Zachello Encinas](https://www.linkedin.com/in/leonardozachello/) 
- 
-**Professores Orientadores:** [Eduardo Savino Gomes](https://www.linkedin.com/in/eduardo-savino-gomes-77833a10/), [Ronaldo Araujo Pinto](https://www.linkedin.com/in/ronaldo-araujo-pinto-3542811a/), [José Buesso](https://www.linkedin.com/in/jbuesso/), [Francisco (Chico) Escobar](https://www.linkedin.com/in/francisco-escobar/) e [Adriano Valente](https://www.linkedin.com/in/adriano-valente/).
- 
+
+<h1 align="center">KFKA — Plataforma de Acompanhamento Escolar</h1>
+
+<p align="center">
+  Projeto Interdisciplinar desenvolvido no 2º semestre do curso de Análise e Desenvolvimento de Sistemas da FECAP.
+</p>
+
 ---
- 
-## Descrição
- 
-A KFKA é uma empresa de desenvolvimento de software que propõe às equipes do 2º semestre do curso de Análise e Desenvolvimento de Sistemas a criação de uma aplicação web responsiva destinada a escolas de Ensino Fundamental.
- 
-Este projeto tem como objetivo desenvolver uma plataforma web responsiva que apoie o acompanhamento acadêmico bimestral e estabeleça um fluxo claro de comunicação entre professores, administração escolar e pais/responsáveis. O professor registra o andamento do aluno em cada disciplina — descrição qualitativa, média do bimestre e tags de acompanhamento. Antes de chegar à família, o registro passa pela revisão do Administrador da Escola, que pode alterar, devolver para ajustes ou publicar. O responsável visualiza apenas os relatórios publicados dos alunos aos quais está vinculado e pode gerar o documento em PDF.
- 
-## 🛠 Estrutura de pastas
- 
+
+## 👥 Grupo COMMIT
+
+### Integrantes
+
+- [Paulo Miguel Miranda Marcelli](https://www.linkedin.com/in/paulo-marcelli-06a7bb304/)
+- [Cauã Santos Nascimento](https://www.linkedin.com/in/caua-nascimento/)
+- [Pedro Henrique Santos da Silva](https://www.linkedin.com/in/pedrossilva15/)
+- [Leonardo Zachello Encinas](https://www.linkedin.com/in/leonardozachello/)
+
+### Professores orientadores
+
+- [Eduardo Savino Gomes](https://www.linkedin.com/in/eduardo-savino-gomes-77833a10/)
+- [Ronaldo Araujo Pinto](https://www.linkedin.com/in/ronaldo-araujo-pinto-3542811a/)
+- [José Buesso](https://www.linkedin.com/in/jbuesso/)
+- [Francisco (Chico) Escobar](https://www.linkedin.com/in/francisco-escobar/)
+- [Adriano Valente](https://www.linkedin.com/in/adriano-valente/)
+
 ---
+
+# 📚 Sobre o projeto
+
+O **KFKA — Acompanhamento Escolar** é uma plataforma web desenvolvida para apoiar o acompanhamento acadêmico bimestral de alunos do Ensino Fundamental.
+
+A solução centraliza em um único ambiente digital o fluxo de comunicação entre **professores, coordenação escolar e responsáveis**, permitindo registrar, revisar, publicar e acompanhar informações sobre o desenvolvimento dos alunos.
+
+O professor registra o acompanhamento de cada aluno com informações como descrição qualitativa, média e dados acadêmicos relacionados ao bimestre.
+
+Antes de chegar à família, o registro passa por um fluxo de revisão realizado pela administração ou coordenação escolar. O acompanhamento pode ser revisado, devolvido para ajustes, publicado ou cancelado.
+
+Depois da publicação, o responsável consegue consultar somente os relatórios dos alunos aos quais possui vínculo autorizado.
+
+---
+
+# 💡 Por que o projeto é importante?
+
+O acompanhamento escolar envolve informações distribuídas entre professores, coordenação e famílias.
+
+O KFKA busca tornar esse processo mais organizado, rastreável e acessível ao:
+
+- centralizar os registros acadêmicos;
+- melhorar a comunicação entre escola e família;
+- organizar o acompanhamento bimestral dos alunos;
+- controlar o fluxo de revisão e publicação;
+- manter histórico das alterações realizadas;
+- restringir o acesso às informações de acordo com cada perfil;
+- facilitar a consulta do desenvolvimento escolar ao longo do ano.
+
+---
+
+# 🎯 Objetivos
+
+## Objetivo geral
+
+Desenvolver uma aplicação web responsiva, segura e integrada que permita registrar, revisar, publicar e acompanhar informações acadêmicas bimestrais de alunos do Ensino Fundamental.
+
+## Objetivos específicos
+
+- Implementar autenticação e controle de acesso por perfil;
+- Permitir os perfis **Administrador, Professor e Responsável**;
+- Estruturar cadastros de alunos, responsáveis, professores, disciplinas e turmas;
+- Controlar vínculos entre professores, disciplinas e turmas;
+- Organizar os quatro bimestres do ano letivo;
+- Permitir ao professor registrar acompanhamentos;
+- Implementar o fluxo de revisão antes da publicação;
+- Disponibilizar ao responsável apenas os acompanhamentos publicados;
+- Registrar histórico e auditoria das alterações;
+- Persistir os dados em PostgreSQL;
+- Integrar frontend, backend e banco de dados;
+- Aplicar os conhecimentos das disciplinas do Projeto Interdisciplinar em uma única solução.
+
+---
+
+# 🔄 Fluxo do sistema
+
 ```text
-Raiz
+PROFESSOR
+   │
+   │ cria o acompanhamento
+   ▼
+RASCUNHO
+   │
+   │ envia para revisão
+   ▼
+ENVIADO_REVISÃO
+   │
+   ▼
+EM_REVISÃO
+   │
+   ├──────────────► DEVOLVIDO
+   │                   │
+   │                   └── professor ajusta e reenvia
+   │
+   ├──────────────► CANCELADO
+   │
+   ▼
+PUBLICADO
+   │
+   ▼
+RESPONSÁVEL
+visualiza o acompanhamento
+```
+
+### Administrador / Coordenação
+
+Responsável pela administração da estrutura escolar e pelo fluxo de revisão dos acompanhamentos.
+
+Pode realizar operações relacionadas a:
+
+- alunos;
+- professores;
+- responsáveis;
+- turmas;
+- disciplinas;
+- vínculos acadêmicos;
+- anos letivos;
+- bimestres;
+- revisão dos acompanhamentos;
+- auditoria.
+
+### Professor
+
+Pode:
+
+- visualizar seus vínculos acadêmicos;
+- consultar seus alunos;
+- registrar acompanhamentos;
+- salvar registros como rascunho;
+- editar registros permitidos;
+- enviar acompanhamentos para revisão.
+
+### Responsável
+
+Pode:
+
+- visualizar os alunos aos quais possui vínculo;
+- consultar acompanhamentos publicados;
+- acompanhar o histórico acadêmico disponibilizado pela escola.
+
+---
+
+# 🛠 Tecnologias utilizadas
+
+## Frontend
+
+- HTML5
+- CSS3
+- JavaScript
+- React
+- Vite
+
+## Backend
+
+- Node.js
+- Express
+- JavaScript
+- JWT
+- bcrypt
+
+## Banco de Dados
+
+- PostgreSQL
+- Neon
+- pg
+
+## Design
+
+- Figma
+
+## Desenvolvimento e publicação
+
+- Git
+- GitHub
+- Vercel
+- Railway
+
+---
+
+# 🏗 Arquitetura
+
+A aplicação da Entrega 2 funciona de forma integrada:
+
+```text
+┌─────────────────────┐
+│      Frontend       │
+│    React + Vite     │
+└──────────┬──────────┘
+           │
+           │ HTTP / JSON
+           ▼
+┌─────────────────────┐
+│       Backend       │
+│  Node.js + Express  │
+│     API REST        │
+└──────────┬──────────┘
+           │
+           │ SQL
+           ▼
+┌─────────────────────┐
+│     PostgreSQL      │
+│       Neon          │
+└─────────────────────┘
+```
+
+As regras de negócio são mantidas principalmente na camada de serviços do backend, enquanto os repositórios realizam o acesso ao PostgreSQL.
+
+---
+
+# 🗄 Banco de Dados
+
+O banco de dados foi desenvolvido em PostgreSQL e contempla as entidades e relacionamentos necessários para o funcionamento da plataforma.
+
+Entre as principais estruturas estão:
+
+- Usuário;
+- Administrador;
+- Professor;
+- Responsável;
+- Aluno;
+- Turma;
+- Disciplina;
+- Área;
+- Ano Letivo;
+- Bimestre;
+- Vínculo entre professor, turma e disciplina;
+- Matrícula de aluno em turma;
+- Acompanhamento;
+- Tags;
+- Histórico do acompanhamento;
+- Retorno do acompanhamento;
+- Ciência do responsável.
+
+O banco também possui:
+
+- chaves primárias e estrangeiras;
+- restrições de integridade;
+- validações com `CHECK`;
+- índices para consultas recorrentes;
+- trigger para validação contextual dos acompanhamentos;
+- views para consultas acadêmicas e relatórios;
+- histórico para auditoria das alterações.
+
+Os modelos, scripts e documentos das duas entregas estão disponíveis em:
+
+```text
+Documentos/Entrega 1/BD
+Documentos/Entrega 2/BD
+```
+
+---
+
+# 💻 Programação Orientada a Objetos
+
+A camada de backend foi estruturada utilizando separação de responsabilidades entre:
+
+```text
+Models
+   ↓
+Repositories
+   ↓
+Services
+   ↓
+Routes
+```
+
+Entre as principais regras implementadas estão:
+
+- validação da média entre 0 e 10;
+- validação do vínculo acadêmico do professor;
+- validação da matrícula do aluno na turma;
+- compatibilidade entre vínculo, ano letivo e bimestre;
+- controle do workflow dos acompanhamentos;
+- controle de permissões por perfil;
+- histórico e auditoria das alterações;
+- integração com PostgreSQL.
+
+---
+
+# 🎨 Design de Interface Digital
+
+O projeto possui interface responsiva para os diferentes perfis da plataforma.
+
+Foram desenvolvidos fluxos e telas para:
+
+- página pública;
+- criação e acesso à conta;
+- perfil administrativo;
+- perfil professor;
+- perfil responsável;
+- cadastros;
+- acompanhamento acadêmico;
+- fila de revisão;
+- relatórios;
+- histórico.
+
+A documentação de Design de Interface Digital está disponível em:
+
+[Documentos/Entrega 2/Design de Interface Digital](Documentos/Entrega%202/Design%20de%20Interface%20Digital/)
+
+---
+
+# 📂 Estrutura do repositório
+
+```text
+Projeto4/
+│
 ├── Documentos/
+│   │
 │   ├── Entrega 1/
 │   │   ├── BD/
 │   │   ├── Desenvolvimento web fullstack/
 │   │   ├── Design de Interface Digital/
 │   │   ├── Estrutura de dados/
 │   │   └── POO/
-│   └── Entrega 2/
-│       ├── BD/
-│       ├── Desenvolvimento web fullstack/
-│       ├── Design de Interface Digital/
-│       ├── Estrutura de dados/
-│       └── POO/
+│   │
+│   ├── Entrega 2/
+│   │   ├── BD/
+│   │   ├── Desenvolvimento web fullstack/
+│   │   ├── Design de Interface Digital/
+│   │   ├── Estrutura de dados/
+│   │   └── POO/
+│   │
+│   ├── README.md
+│   ├── banner-commit.pdf
+│   └── banner-commit.pptx
+│
 ├── Imagens/
+│
 ├── src/
+│   │
 │   ├── Entrega 1/
-│   │   ├── Backend/    # Node.js + Express + PostgreSQL
-│   │   └── Frontend/   # React + Vite (dados simulados)
-│   └── Entrega 2/
-│       ├── Backend/    # Node.js + Express + PostgreSQL + JWT
-│       ├── Frontend/   # React + Vite integrado à API
-│       └── DEPLOY.md   # como o deploy foi feito
+│   │   ├── Backend/
+│   │   └── Frontend/
+│   │
+│   ├── Entrega 2/
+│   │   ├── Backend/
+│   │   ├── Frontend/
+│   │   └── DEPLOY.md
+│   │
+│   └── README.md
+│
+├── .env.example
 ├── .gitignore
-└── README.md (Guia geral do projeto)
+└── README.md
 ```
 
-Os dois backends usam **Node.js com Express** e **PostgreSQL**. Na Entrega 2, o frontend React
-consome a API e os dados persistem no banco; a Entrega 1 mantém a camada simulada do protótipo.
+---
+
+
+
+# 🚀 Como executar localmente
+
+## Backend — Entrega 2
+
+```bash
+cd "src/Entrega 2/Backend"
+
+npm install
+```
+
+Crie o arquivo `.env` utilizando `.env.example` como referência.
+
+Depois execute:
+
+```bash
+npm start
+```
+
+A API ficará disponível, por padrão, em:
+
+```text
+http://localhost:3000/api
+```
 
 ---
- 
-## 🔄 Fluxo do Sistema
- 
-**Administrador:**
-Cadastra a estrutura escolar (alunos, professores, turmas, disciplinas, tags) e define os períodos de abertura/encerramento de cada bimestre.
- 
-**Professor:**
-Registra o acompanhamento bimestral do aluno (descrição, média e tags) dentro do período autorizado, salva como rascunho e envia para revisão.
- 
-**Administrador (revisão):**
-Recebe o registro enviado, revisa, altera se necessário, devolve para ajustes ou publica para a família — com rastreabilidade completa (usuário, data/hora, estado anterior e posterior).
- 
-**Pai/Responsável:**
-Visualiza somente os relatórios publicados dos alunos vinculados ao seu cadastro, gera o PDF e pode registrar ciência/observação.
- 
----
- 
-## 🎯 Objetivos
- 
-**Objetivo Geral:**
-Desenvolver uma aplicação web responsiva, segura e integrada que permita registrar, revisar, publicar e acompanhar informações acadêmicas bimestrais de alunos do Ensino Fundamental, fortalecendo a comunicação entre escola, professores e responsáveis.
- 
-**Objetivos Específicos:**
-- Implementar autenticação e controle de acesso por perfil (Administrador, Professor, Pai/Responsável)
-- Estruturar cadastros de alunos, responsáveis, professores, disciplinas, turmas e tags
-- Permitir configuração dos quatro bimestres e seus períodos de digitação
-- Implementar o fluxo editorial: Rascunho → Enviado → Em revisão → Publicado (com Devolvido/Cancelado como alternativas)
-- Oferecer relatórios gerenciais, geração de PDF e exportação de dados compatível com Excel
-- Aplicar conceitos de Estrutura de Dados, Desenvolvimento Web Full Stack, Design de Interface Digital, Banco de Dados e Programação Orientada a Objetos em uma solução única
----
- 
-## 🗄 Banco de Dados
- 
-Entidades principais:
-- Aluno
-- Responsável
-- Professor
-- Turma
-- Disciplina
-- Área de Disciplina
-- Acompanhamento (registro bimestral)
-- Tag
-- Bimestre
-- Histórico/Auditoria
-Relacionamentos:
-- Responsável está vinculado a um ou mais Alunos (e um Aluno pode ter mais de um Responsável)
-- Professor leciona Disciplinas em Turmas específicas
-- Acompanhamento está associado a um único Aluno, Turma, Disciplina, Professor, Bimestre e Ano Letivo
-- Acompanhamento pode possuir múltiplas Tags
-- Histórico registra as transições de estado de cada Acompanhamento
-Modelo conceitual/lógico/físico e scripts SQL documentados em
-`Documentos/Entrega 1/BD` e `Documentos/Entrega 2/BD`.
- 
----
- 
-## 🎨 Design
- 
-Protótipo navegável e design system desenvolvidos no Figma, cobrindo:
-- Landing pública, seleção de perfil e login
-- Módulo Administrador (cadastros, fila de revisão, relatórios)
-- Módulo Professor (registro de acompanhamento)
-- Módulo Pai/Responsável (consulta e geração de PDF)
-Links do Figma: [Design de Interface Digital — Entrega 2](<Documentos/Entrega 2/Design de Interface Digital/README.md>).
- 
----
- 
-## 🚀 Como executar
- 
+
+## Frontend — Entrega 2
+
+Em outro terminal:
+
 ```bash
-# Backend (Entrega 2)
-cd "src/Entrega 2/Backend"
-npm install
-cp .env.example .env   # configurar PostgreSQL e JWT_SECRET
-npm start
- 
-# Frontend (Entrega 2)
 cd "src/Entrega 2/Frontend"
+
 npm install
 npm run dev
 ```
- 
----
 
-## 🌐 Aplicação publicada
-
-- **Frontend (Vercel):** <https://project-kfka.vercel.app>
-- **API (Railway):** <https://projeto4-production.up.railway.app/api>
-- **Banco:** PostgreSQL no Neon
-
-O registro de como o deploy foi feito (arquitetura, configuração e verificações) está em
-[`src/Entrega 2/DEPLOY.md`](<src/Entrega 2/DEPLOY.md>).
+O Vite utilizará a configuração do projeto para comunicação com a API durante o desenvolvimento.
 
 ---
+
+# 🌐 Aplicação publicada
+
+A versão final da Entrega 2 está publicada nos seguintes serviços:
+
+### Frontend — Vercel
+
+https://project-kfka.vercel.app
+
+### API — Railway
+
+https://projeto4-production.up.railway.app/api
+
+### Banco de Dados — Neon
+
+PostgreSQL hospedado no Neon.
+
+A documentação do processo de publicação está disponível em:
+
+[`src/Entrega 2/DEPLOY.md`](src/Entrega%202/DEPLOY.md)
+
+---
+
+
+# 🤖 Uso de Inteligência Artificial
+
+O uso de ferramentas de Inteligência Artificial no desenvolvimento foi documentado de acordo com o **Guia para o Uso Responsável de Inteligência Artificial na FECAP**.
+
+O repositório contém declarações específicas sobre os usos realizados em cada disciplina e entrega.
+
+O resumo geral e os links para as declarações completas estão disponíveis em:
+
+[Documentos — Declarações de Uso de IA](Documentos/README.md)
+
+As ferramentas de IA foram utilizadas como apoio em atividades como:
+
+- discussão e estruturação de soluções;
+- explicação de conceitos;
+- revisão de código;
+- identificação e correção de erros;
+- validação de regras;
+- interpretação de resultados;
+- organização de testes;
+- revisão de documentação.
+
+As decisões finais, execução, testes e validação dos resultados permaneceram sob responsabilidade dos integrantes do projeto.
+
+---
+
+# 📄 Documentação
+
+A documentação completa das disciplinas está organizada em:
+
+- [Entrega 1](Documentos/Entrega%201/)
+- [Entrega 2](Documentos/Entrega%202/)
+
+Também estão disponíveis na pasta `Documentos`:
+
+- declaração de uso de IA;
+- documentos de Banco de Dados;
+- materiais de POO;
+- documentação Fullstack;
+- materiais de Design;
+- Estrutura de Dados;
+- banner final do projeto.
+
+---
+
