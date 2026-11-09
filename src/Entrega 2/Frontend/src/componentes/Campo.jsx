@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import Icone from "./Icone.jsx";
 
 /**
@@ -31,6 +31,24 @@ export default function Campo({
   const idGerado = useId();
   const id = idExterno || `campo-${idGerado.replace(/[:]/g, "")}`;
   const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const textareaRef = useRef(null);
+
+  // Faz o textarea crescer junto com o texto (até o limite definido no CSS),
+  // em vez de manter a altura fixa e esconder o conteúdo atrás da rolagem.
+  useLayoutEffect(() => {
+    const elemento = textareaRef.current;
+    if (!elemento) return;
+
+    function ajustar() {
+      elemento.style.height = "auto";
+      const bordas = elemento.offsetHeight - elemento.clientHeight;
+      elemento.style.height = `${elemento.scrollHeight + bordas}px`;
+    }
+
+    ajustar();
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, [valor]);
 
   const propsComuns = {
     id,
@@ -64,6 +82,7 @@ export default function Campo({
     controle = (
       <textarea
         {...propsComuns}
+        ref={textareaRef}
         className="textarea"
         placeholder={placeholder}
         minLength={minLength}
