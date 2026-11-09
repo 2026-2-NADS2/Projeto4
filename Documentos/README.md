@@ -69,18 +69,17 @@ Cada disciplina possui abaixo seu respectivo registro. Quando aplicável, as dec
 
 | **Campo** | **Descrição** |
 | --- | --- |
-| **Aluno(s) Responsável(veis)** | **[preencher]** |
-| **Ferramenta utilizada** | [preencher] |
-| **Versão/modelo** | [preencher] |
-| **Disciplina / Trabalho** | Estrutura de Dados – Projeto Interdisciplinar KFKA: Acompanhamento Escolar – Entregas 1 e 2 |
-| **Finalidade de uso** | [preencher – descrever como a ferramenta foi utilizada como apoio] |
-| **Prompts principais utilizados** | [preencher – resumir os principais tipos de prompts utilizados] |
-| **Trechos ou entregas afetadas** | [preencher – indicar códigos, algoritmos, documentação ou demais partes afetadas] |
+| **Aluno(s) Responsável(veis)** | **Leonardo Encinas** |
+| **Ferramenta utilizada** | Gemini |
+| **Versão/modelo** | Gemini 3.1 Pro |
+| **Disciplina / Trabalho** | Estrutura de Dados – Projeto Interdisciplinar KFKA: Acompanhamento Escolar – Entrega 2 |
+| **Finalidade de uso** | Utilizada como ferramenta de apoio na elaboração e revisão do mini relatório da Entrega 2. |
+| **Prompts principais utilizados** | Considerando os códigos apresentados sobre estrutura de dados, me ajude a escrever um mini relatório, não precisa ser muito complexo, de como nós utilizamos nossos conhecimentos em estrutura de dados para otimizar a nossa solução. Separe uma parte da estrutura para que eu possa adicionar um trecho de código como exemplo. |
+| **Trechos ou entregas afetadas** | Entrega 2 |
 
 ### Declarações completas
 
-- [Entrega 1 – adicionar declaração](./Estrutura%20de%20dados/[preencher])
-- [Entrega 2 – adicionar declaração](./Estrutura%20de%20dados/[preencher])
+- [Declaração de Uso de IA - Estrutura de Dados - Entrega 2](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%202/Estrutura%20de%20dados/Ficha%20de%20Declaracao%20Uso%20IA%20-%20FECAP.docx)
 
 ---
 
