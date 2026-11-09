@@ -238,11 +238,6 @@ export default function LayoutApp({ papel, ativo, children }) {
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
-      <div className="demo-ribbon" role="note">
-        <Icone nome="info" className="icon-sm" />
-        Ambiente de demonstração · dados fictícios enquanto a integração com a API é concluída
-        <Link to="/">Início</Link>
-      </div>
       <div className={`app${papel === "familia" ? " has-tabbar" : ""}${navAberto ? " nav-open" : ""}`}>
         <aside className="sidebar" aria-label="Menu principal">
           <Link className="logo brand" to={rotaBase} style={{ color: "#fff" }}>
