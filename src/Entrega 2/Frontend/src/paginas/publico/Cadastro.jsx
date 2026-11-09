@@ -16,13 +16,28 @@ import { PilulaPerfil } from "./partes.jsx";
 const INTRO = {
   administrador:
     "Para coordenadores e diretores. Você cria o espaço da escola e depois cadastra turmas, professores e responsáveis.",
-  professor: "Use o código de convite que a coordenação da sua escola enviou por e-mail.",
-  responsavel: "Use o código de convite que a escola enviou no comunicado do aluno.",
+  professor:
+    "Use o código de convite que a coordenação da sua escola enviou por e-mail.",
+  responsavel:
+    "Use o código de convite que a escola enviou no comunicado do aluno.",
+};
+
+const RESTRICAO_CADASTRO = {
+  professor:
+    "Somente a coordenação da escola cria contas de professores. Peça o convite à coordenação e entre com o e-mail e a senha enviados por ela.",
+  administrador:
+    "Contas de coordenação são criadas pela própria escola. Fale com a coordenação para receber o acesso.",
 };
 
 const PARENTESCOS = ["Mãe", "Pai", "Avó ou avô", "Outro responsável"];
 
-const FORCA = ["Senha muito fraca", "Senha fraca", "Senha média", "Senha boa", "Senha forte"];
+const FORCA = [
+  "Senha muito fraca",
+  "Senha fraca",
+  "Senha média",
+  "Senha boa",
+  "Senha forte",
+];
 
 function nivelDaSenha(valor) {
   if (!valor) return 0;
@@ -70,28 +85,43 @@ export default function Cadastro() {
   function validar() {
     const novos = {};
 
-    if (nome.trim().length < 3) novos.nome = "Informe seu nome completo (pelo menos 3 letras).";
+    if (nome.trim().length < 3)
+      novos.nome = "Informe seu nome completo (pelo menos 3 letras).";
     if (!email.trim()) novos.email = "Preencha este campo.";
-    else if (!emailValido(email)) novos.email = "Informe um e-mail válido, como nome@escola.edu.br.";
+    else if (!emailValido(email))
+      novos.email = "Informe um e-mail válido, como nome@escola.edu.br.";
 
     if (perfil === "administrador") {
-      if (escola.trim().length < 3) novos.escola = "Informe o nome da escola (pelo menos 3 letras).";
+      if (escola.trim().length < 3)
+        novos.escola = "Informe o nome da escola (pelo menos 3 letras).";
       if (!cargo) novos.cargo = "Selecione o seu cargo.";
     } else {
       if (!convite.trim()) novos.convite = "Informe o código de convite.";
       else if (!/^[A-Z0-9]{4}-?[A-Z0-9]{4}$/i.test(convite))
         novos.convite = "O código tem 8 letras ou números, como AURO-7K2P.";
-      if (perfil === "professor" && !disciplina) novos.disciplina = "Selecione a disciplina principal.";
+      if (perfil === "professor" && !disciplina)
+        novos.disciplina = "Selecione a disciplina principal.";
     }
 
     if (senha.length < 8) novos.senha = "Use pelo menos 8 caracteres.";
     if (!termos) novos.termos = "Aceite os termos para criar a conta.";
     if (perfil === "responsavel" && !lgpd)
-      novos.lgpd = "Sem esta autorização a família não consegue ver os relatórios.";
+      novos.lgpd =
+        "Sem esta autorização a família não consegue ver os relatórios.";
 
     setErros(novos);
 
-    const ordem = ["nome", "email", "escola", "cargo", "convite", "disciplina", "senha", "termos", "lgpd"];
+    const ordem = [
+      "nome",
+      "email",
+      "escola",
+      "cargo",
+      "convite",
+      "disciplina",
+      "senha",
+      "termos",
+      "lgpd",
+    ];
     const primeiro = ordem.find((campo) => novos[campo]);
     if (primeiro) document.getElementById(primeiro)?.focus();
 
@@ -102,7 +132,9 @@ export default function Cadastro() {
     evento.preventDefault();
     if (!validar()) return;
 
-    const disciplinaEscolhida = dados.disciplinas.find((item) => item.id === disciplina);
+    const disciplinaEscolhida = dados.disciplinas.find(
+      (item) => item.id === disciplina,
+    );
     const sub =
       perfil === "administrador"
         ? cargo
@@ -112,15 +144,33 @@ export default function Cadastro() {
 
     try {
       setEnviando(true);
-      await cadastrar({ perfil, nome: nome.trim().replace(/\s+/g, " "), email: email.trim(), sub, senha });
+      await cadastrar({
+        perfil,
+        nome: nome.trim().replace(/\s+/g, " "),
+        email: email.trim(),
+        sub,
+        senha,
+      });
       setCriada(email.trim());
     } catch (erro) {
       if (erro instanceof ErroAutenticacao && erro.codigo === "email") {
         setErros((atuais) => ({
           ...atuais,
-          email: "Já existe uma conta com este e-mail. Use “Entrar” ou outro endereço.",
+          email:
+            "Já existe uma conta com este e-mail. Use “Entrar” ou outro endereço.",
         }));
         document.getElementById("email")?.focus();
+      } else if (
+        erro instanceof ErroAutenticacao &&
+        erro.codigo === "perfil_nao_permitido"
+      ) {
+        setErros((atuais) => ({
+          ...atuais,
+          geral:
+            RESTRICAO_CADASTRO[perfil] ||
+            erro.mensagem ||
+            "Não foi possível criar a conta agora. Tente novamente.",
+        }));
       } else {
         setErros((atuais) => ({
           ...atuais,
@@ -150,8 +200,9 @@ export default function Cadastro() {
             <p className="text-2">
               {perfil === "administrador" ? (
                 <>
-                  O espaço da <b>{escola.trim()}</b> está criado e você é a pessoa administradora. O
-                  próximo passo é abrir o bimestre e cadastrar as turmas.
+                  O espaço da <b>{escola.trim()}</b> está criado e você é a
+                  pessoa administradora. O próximo passo é abrir o bimestre e
+                  cadastrar as turmas.
                 </>
               ) : perfil === "professor" ? (
                 "A coordenação vai confirmar as suas turmas e disciplinas. Até lá, você já pode entrar e conhecer o painel."
@@ -195,7 +246,12 @@ export default function Cadastro() {
         </div>
       )}
 
-      <form className="stack cadastro" id="cadastro-form" noValidate onSubmit={enviar}>
+      <form
+        className="stack cadastro"
+        id="cadastro-form"
+        noValidate
+        onSubmit={enviar}
+      >
         <h2 className="form-secao">Seus dados</h2>
         <Campo
           id="nome"
@@ -279,11 +335,16 @@ export default function Cadastro() {
                 valor={disciplina}
                 aoMudar={setDisciplina}
                 obrigatorio
-                opcoes={[["", "Selecione"], ...dados.disciplinas.map((item) => [item.id, item.nome])]}
+                opcoes={[
+                  ["", "Selecione"],
+                  ...dados.disciplinas.map((item) => [item.id, item.nome]),
+                ]}
                 erro={erros.disciplina}
               />
             ) : (
-              <fieldset className={`field${erros.parentesco ? " has-error" : ""}`}>
+              <fieldset
+                className={`field${erros.parentesco ? " has-error" : ""}`}
+              >
                 <legend>
                   Parentesco
                   <span className="req" aria-hidden="true">
@@ -325,7 +386,10 @@ export default function Cadastro() {
         <div className="forca">
           <div className="strength" data-nivel={nivel} aria-hidden="true">
             {[0, 1, 2, 3].map((indice) => (
-              <span key={indice} className={indice < nivel ? "on" : undefined} />
+              <span
+                key={indice}
+                className={indice < nivel ? "on" : undefined}
+              />
             ))}
           </div>
           <span className="forca-txt" id="forca-txt" aria-live="polite">
@@ -342,7 +406,11 @@ export default function Cadastro() {
               onChange={(evento) => setTermos(evento.target.checked)}
             />
             <span>
-              Li e aceito os <Link to="/privacidade">termos de uso e a política de privacidade</Link>.
+              Li e aceito os{" "}
+              <Link to="/privacidade">
+                termos de uso e a política de privacidade
+              </Link>
+              .
             </span>
           </label>
           <span className="error-msg" role="alert">
@@ -361,8 +429,8 @@ export default function Cadastro() {
                 onChange={(evento) => setLgpd(evento.target.checked)}
               />
               <span>
-                Autorizo a escola a tratar os dados de acompanhamento dos alunos vinculados a mim,
-                conforme a LGPD.
+                Autorizo a escola a tratar os dados de acompanhamento dos alunos
+                vinculados a mim, conforme a LGPD.
               </span>
             </label>
             <span className="error-msg" role="alert">
@@ -372,8 +440,13 @@ export default function Cadastro() {
           </div>
         )}
 
-        <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={enviando}>
-          {enviando ? "Criando conta…" : "Criar conta"} <Icone nome="chevron-right" />
+        <button
+          className="btn btn-primary btn-lg btn-block"
+          type="submit"
+          disabled={enviando}
+        >
+          {enviando ? "Criando conta…" : "Criar conta"}{" "}
+          <Icone nome="chevron-right" />
         </button>
       </form>
 
