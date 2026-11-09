@@ -23,7 +23,7 @@ Cada disciplina possui abaixo seu respectivo registro. Quando aplicável, as dec
 ### Declarações completas
 
 - [Declaração de Uso de IA – Banco de Dados – Entrega 1](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%201/BD/Declaracao_IA_BD_Entrega1_Caua.docx)
-- [Declaração de Uso de IA – Banco de Dados – Entrega 2](./BD/Declaracao_IA_BD_Entrega2_Caua.docx)
+- [Declaração de Uso de IA – Banco de Dados – Entrega 2](https://github.com/2026-2-NADS2/Projeto4/blob/main/Documentos/Entrega%202/BD/Declaracao_IA_BD_Entrega2_Caua.docx)
 
 ---
 
