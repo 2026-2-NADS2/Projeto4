@@ -57,7 +57,11 @@ function mapearResponsavel(linha) {
         totalAlunos:
             linha.total_alunos === undefined
                 ? undefined
-                : Number(linha.total_alunos)
+                : Number(linha.total_alunos),
+        alunos:
+            linha.alunos === undefined
+                ? undefined
+                : linha.alunos
     };
 }
 

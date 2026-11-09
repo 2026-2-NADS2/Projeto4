@@ -1,25 +1,24 @@
-import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import Icone from "../../componentes/Icone.jsx";
 import Marca from "../../componentes/Marca.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
+import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
+import { baixarArquivo, gerarPdf } from "../../utilitarios/arquivos.js";
 import { fmtMedia } from "../../utilitarios/formatadores.js";
-import { nomeArquivoPdf } from "../../utilitarios/familia.js";
+import { documentoDoRegistro } from "../../utilitarios/familia.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
-import { ModalPdf } from "./partes.jsx";
 
 export default function Imprimir() {
   const { id } = useParams();
   const { usuario } = useAutenticacao();
+  const { avisar } = useAviso();
   const registro = api.rel(id);
   const responsavel = api.resp(usuario?.respId || "r1");
   const vinculado = Boolean(registro && responsavel?.alunos.includes(registro.aluno));
   const permitido = Boolean(vinculado && registro.status === "publicado");
 
   useTitulo("Imprimir relatório");
-
-  const [pdfAberto, setPdfAberto] = useState(false);
 
   if (!permitido) return <Navigate to="/acesso-negado" replace />;
 
@@ -31,6 +30,16 @@ export default function Imprimir() {
     .map((tagId) => dados.tags.find((tag) => tag.id === tagId)?.nome)
     .filter(Boolean)
     .join(" · ");
+
+  function baixarPdf() {
+    try {
+      const { nomeArquivo, documento } = documentoDoRegistro(registro, responsavel);
+      baixarArquivo(nomeArquivo, gerarPdf(documento));
+      avisar("PDF gerado", `${nomeArquivo} foi baixado.`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível gerar o PDF", erro?.message || "Tente novamente.", "err");
+    }
+  }
 
   return (
     <>
@@ -45,7 +54,7 @@ export default function Imprimir() {
         <span className="muted hide-mobile" style={{ fontSize: "0.8125rem" }}>
           Use “Salvar como PDF” na janela de impressão do navegador.
         </span>
-        <button type="button" className="btn btn-secondary" onClick={() => setPdfAberto(true)}>
+        <button type="button" className="btn btn-secondary" onClick={baixarPdf}>
           <Icone nome="download" /> Baixar PDF
         </button>
         <button type="button" className="btn btn-primary" onClick={() => window.print()}>
@@ -112,12 +121,6 @@ export default function Imprimir() {
           <span>Ciência do responsável: {registro.lido ? "registrada" : "pendente"}</span>
         </footer>
       </main>
-
-      <ModalPdf
-        aberto={pdfAberto}
-        aoFechar={() => setPdfAberto(false)}
-        arquivo={nomeArquivoPdf(registro)}
-      />
     </>
   );
 }

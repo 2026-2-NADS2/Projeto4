@@ -552,7 +552,22 @@ class AdminRepository {
                     FROM aluno_responsavel ar
                     WHERE ar.id_responsavel = r.id_responsavel
                       AND ar.autorizado = TRUE
-                ) AS total_alunos
+                ) AS total_alunos,
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', ar.id_aluno,
+                                'tipoRelacao', ar.tipo_relacao,
+                                'autorizado', ar.autorizado
+                            )
+                            ORDER BY ar.id_aluno
+                        )
+                        FROM aluno_responsavel ar
+                        WHERE ar.id_responsavel = r.id_responsavel
+                    ),
+                    '[]'::json
+                ) AS alunos
             FROM responsavel r
             JOIN usuario u ON u.id_usuario = r.id_usuario
             ORDER BY u.nome;

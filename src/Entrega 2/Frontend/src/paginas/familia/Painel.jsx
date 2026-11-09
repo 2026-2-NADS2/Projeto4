@@ -6,14 +6,17 @@ import LayoutApp from "../../componentes/LayoutApp.jsx";
 import LineChart from "../../componentes/LineChart.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
 import StatusBadge from "../../componentes/StatusBadge.jsx";
+import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
+import { baixarArquivo, gerarPdf } from "../../utilitarios/arquivos.js";
 import { fmtMedia, plural, primeiroNome } from "../../utilitarios/formatadores.js";
-import { mediaDe, tomMedia, useFamilia } from "../../utilitarios/familia.js";
+import { documentoDesempenho, mediaDe, tomMedia, useFamilia } from "../../utilitarios/familia.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 import { SeletorAluno } from "./partes.jsx";
 
 export default function PainelFamilia() {
   const { responsavel, aluno, params } = useFamilia();
+  const { avisar } = useAviso();
   useTitulo(aluno ? `Acompanhamento de ${primeiroNome(aluno.nome)}` : "Início da família");
 
   if (!aluno) return <Navigate to="/acesso-negado" replace />;
@@ -41,12 +44,33 @@ export default function PainelFamilia() {
       .map((ponto) => `${ponto.label} ${ponto.value == null ? "a publicar" : fmtMedia(ponto.value)}`)
       .join(", ");
 
+  function baixarDesempenho() {
+    try {
+      const { nomeArquivo, documento } = documentoDesempenho(responsavel, aluno, bim);
+      baixarArquivo(nomeArquivo, gerarPdf(documento));
+      avisar("PDF gerado", `${nomeArquivo} foi baixado.`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível gerar o PDF", erro?.message || "Tente novamente.", "err");
+    }
+  }
+
   return (
     <LayoutApp papel="familia" ativo="painel">
       <PageHead
         title={`Acompanhamento de ${primeiroNome(aluno.nome)}`}
         lead={[turma?.nome, turma?.turno, dados.escola.nome].filter(Boolean).join(" · ")}
-        actions={<SeletorAluno aluno={aluno} responsavel={responsavel} base="/familia/painel" />}
+        actions={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={baixarDesempenho}>
+              <Icone nome="download" /> Baixar PDF
+            </button>
+            <SeletorAluno
+              aluno={aluno}
+              responsavel={responsavel}
+              base="/familia/painel"
+            />
+          </>
+        }
       />
 
       {novos.length > 0 && (

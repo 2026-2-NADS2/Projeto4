@@ -8,8 +8,13 @@ import LayoutApp from "../../componentes/LayoutApp.jsx";
 import Modal from "../../componentes/Modal.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
-import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
-import { hidratar } from "../../dados/carregarDados.js";
+import {
+  mapBimestre,
+  mapDisciplina,
+  mapTurma,
+  mapVinculo,
+  sincronizarDisciplinasDosProfessores,
+} from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
 import { api as apiServidor } from "../../servicos/api.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
@@ -20,7 +25,6 @@ export function Turmas() {
   useTitulo("Turmas");
   const navegar = useNavigate();
   const { avisar } = useAviso();
-  const { usuario } = useAutenticacao();
   const [versao, setVersao] = useState(0);
   const [aberto, setAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -47,7 +51,7 @@ export function Turmas() {
         },
       });
 
-      await hidratar(usuario);
+      dados.turmas.push(mapTurma(nova));
       setVersao((valor) => valor + 1);
       setAberto(false);
       avisar("Turma criada", `${nova.nome} foi adicionada ao ano letivo.`, "ok");
@@ -307,7 +311,6 @@ export function TurmaDetalhe() {
 export function Disciplinas() {
   useTitulo("Disciplinas e tags");
   const { avisar } = useAviso();
-  const { usuario } = useAutenticacao();
   const [aba, setAba] = useState("disc");
   const [versao, setVersao] = useState(0);
   const [modal, setModal] = useState(null);
@@ -335,7 +338,7 @@ export function Disciplinas() {
         metodo: "PUT",
         corpo: { ativo: novoAtivo },
       });
-      await hidratar(usuario);
+      disciplina.ativa = novoAtivo;
       setVersao((valor) => valor + 1);
       avisar(
         `${disciplina.nome} ${novoAtivo ? "ativada" : "desativada"}`,
@@ -364,7 +367,7 @@ export function Disciplinas() {
     setEnviando(true);
 
     try {
-      await apiServidor("/admin/disciplinas", {
+      const criada = await apiServidor("/admin/disciplinas", {
         metodo: "POST",
         corpo: {
           idArea: Number(form.area),
@@ -373,7 +376,7 @@ export function Disciplinas() {
         },
       });
 
-      await hidratar(usuario);
+      dados.disciplinas.push(mapDisciplina(criada));
       setVersao((valor) => valor + 1);
       setModal(null);
       setForm({ nome: "", area: dados.areas[0]?.id || "" });
@@ -585,7 +588,6 @@ export function Disciplinas() {
 
 export function Vinculos() {
   useTitulo("Vínculos");
-  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [turma, setTurma] = useState(() => dados.turmas[0]?.id || "");
   const [versao, setVersao] = useState(0);
@@ -610,7 +612,8 @@ export function Vinculos() {
         metodo: "PUT",
         corpo: { idProfessor: Number(novoProf) },
       });
-      await hidratar(usuario);
+      vinculo.prof = String(novoProf);
+      sincronizarDisciplinasDosProfessores();
       setVersao((valor) => valor + 1);
       avisar("Professor atualizado", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "ok");
     } catch (erro) {
@@ -626,7 +629,9 @@ export function Vinculos() {
 
     try {
       await apiServidor(`/admin/vinculos/${vinculo.id}`, { metodo: "DELETE" });
-      await hidratar(usuario);
+      const indice = dados.vinculos.indexOf(vinculo);
+      if (indice >= 0) dados.vinculos.splice(indice, 1);
+      sincronizarDisciplinasDosProfessores();
       setVersao((valor) => valor + 1);
       avisar("Vínculo removido", `${api.disc(vinculo.disc)?.nome} · ${api.turma(turma)?.nome}`, "warn");
     } catch (erro) {
@@ -654,7 +659,7 @@ export function Vinculos() {
     setEnviando(true);
 
     try {
-      await apiServidor("/admin/vinculos", {
+      const criado = await apiServidor("/admin/vinculos", {
         metodo: "POST",
         corpo: {
           idTurma: Number(turma),
@@ -664,7 +669,8 @@ export function Vinculos() {
           ativo: true,
         },
       });
-      await hidratar(usuario);
+      dados.vinculos.push(mapVinculo(criado));
+      sincronizarDisciplinasDosProfessores();
       setDisc("");
       setProf("");
       setVersao((valor) => valor + 1);
@@ -867,7 +873,6 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 
 export function Periodos() {
   useTitulo("Períodos");
-  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [periodos, setPeriodos] = useState(() => dados.bimestres.map((item) => ({ ...item })));
   const [reabrir, setReabrir] = useState(null);
@@ -911,7 +916,7 @@ export function Periodos() {
     setEnviando(true);
 
     try {
-      await Promise.all(
+      const atualizados = await Promise.all(
         periodos.map((periodo) =>
           apiServidor(`/admin/bimestres/${periodo.id}`, {
             metodo: "PUT",
@@ -925,7 +930,11 @@ export function Periodos() {
         ),
       );
 
-      await hidratar(usuario);
+      atualizados.forEach((bimestre) => {
+        const mapeado = mapBimestre(bimestre);
+        const indice = dados.bimestres.findIndex((item) => item.id === mapeado.id);
+        if (indice >= 0) dados.bimestres[indice] = mapeado;
+      });
       recarregar();
       avisar("Períodos salvos", "As datas do calendário letivo foram atualizadas.", "ok");
     } catch (erro) {
@@ -946,7 +955,7 @@ export function Periodos() {
     setEnviando(true);
 
     try {
-      await apiServidor(`/admin/bimestres/${reabrir.id}`, {
+      const atualizado = await apiServidor(`/admin/bimestres/${reabrir.id}`, {
         metodo: "PUT",
         corpo: {
           dataFim: dataDaquiA(7),
@@ -954,7 +963,9 @@ export function Periodos() {
         },
       });
 
-      await hidratar(usuario);
+      const mapeado = mapBimestre(atualizado);
+      const indice = dados.bimestres.findIndex((item) => item.id === mapeado.id);
+      if (indice >= 0) dados.bimestres[indice] = mapeado;
       recarregar();
       avisar(
         "Período reaberto",

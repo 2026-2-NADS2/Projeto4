@@ -16,14 +16,15 @@ import PageHead from "../../componentes/PageHead.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
+import { baixarArquivo, gerarPdf } from "../../utilitarios/arquivos.js";
 import { fmtMedia, primeiroNome } from "../../utilitarios/formatadores.js";
 import {
-  nomeArquivoPdf,
+  documentoDoRegistro,
   tomMedia,
   useFamilia,
 } from "../../utilitarios/familia.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
-import { ModalPdf, SeletorAluno } from "./partes.jsx";
+import { SeletorAluno } from "./partes.jsx";
 
 export function RelatoriosFamilia() {
   const { responsavel, aluno, params } = useFamilia();
@@ -205,7 +206,6 @@ export function RelatorioDetalhe() {
     registro ? `${api.disc(registro.disc).nome} · ${registro.bim}º bimestre` : "Relatório",
   );
 
-  const [pdfAberto, setPdfAberto] = useState(false);
   const [observacao, setObservacao] = useState("");
   const [erroObservacao, setErroObservacao] = useState("");
   const [, atualizar] = useState(0);
@@ -213,7 +213,6 @@ export function RelatorioDetalhe() {
   useEffect(() => {
     setObservacao("");
     setErroObservacao("");
-    setPdfAberto(false);
   }, [id]);
 
   const vinculado = Boolean(registro && responsavel?.alunos.includes(registro.aluno));
@@ -250,6 +249,16 @@ export function RelatorioDetalhe() {
     pontos
       .map((ponto) => `${ponto.label} ${ponto.value == null ? "a publicar" : fmtMedia(ponto.value)}`)
       .join(", ");
+
+  function baixarPdf() {
+    try {
+      const { nomeArquivo, documento } = documentoDoRegistro(registro, responsavel);
+      baixarArquivo(nomeArquivo, gerarPdf(documento));
+      avisar("PDF gerado", `${nomeArquivo} foi baixado.`, "ok");
+    } catch (erro) {
+      avisar("Não foi possível gerar o PDF", erro?.message || "Tente novamente.", "err");
+    }
+  }
 
   function marcarLido() {
     registro.lido = true;
@@ -310,11 +319,7 @@ export function RelatorioDetalhe() {
         lead={`${aluno.nome} · ${turma.nome} · ${registro.bim}º bimestre de ${registro.ano} · publicado em ${publicadoEm}`}
         actions={
           <>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setPdfAberto(true)}
-            >
+            <button type="button" className="btn btn-secondary" onClick={baixarPdf}>
               <Icone nome="download" /> Baixar PDF
             </button>
             <Link
@@ -464,12 +469,6 @@ export function RelatorioDetalhe() {
           </section>
         </aside>
       </div>
-
-      <ModalPdf
-        aberto={pdfAberto}
-        aoFechar={() => setPdfAberto(false)}
-        arquivo={nomeArquivoPdf(registro)}
-      />
     </LayoutApp>
   );
 }

@@ -7,7 +7,17 @@ import Modal from "../../componentes/Modal.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { dados } from "../../dados/dados.js";
+import { baixarArquivo, gerarXlsx } from "../../utilitarios/arquivos.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
+
+const COLUNAS = [
+  { chave: "quando", rotulo: "Data/hora" },
+  { chave: "quem", rotulo: "Usuário" },
+  { chave: "acao", rotulo: "Ação" },
+  { chave: "registro", rotulo: "Registro" },
+  { chave: "de", rotulo: "Estado anterior" },
+  { chave: "para", rotulo: "Estado posterior" },
+];
 
 const TIPOS = [
   ["", "Tudo"],
@@ -31,12 +41,24 @@ export default function Auditoria() {
   }
 
   function gerar() {
-    setExportar(false);
-    avisar(
-      "Exportação simulada",
-      `${lista.length} eventos seriam exportados em .xlsx. Nenhum arquivo real foi criado.`,
-      "ok",
-    );
+    try {
+      const agora = new Date();
+      const carimbo = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}-${String(agora.getDate()).padStart(2, "0")}`;
+      const nome = `auditoria-kfka-${carimbo}.xlsx`;
+
+      baixarArquivo(nome, gerarXlsx(COLUNAS, lista, "Auditoria"));
+      setExportar(false);
+      avisar("Arquivo gerado", `${lista.length} eventos exportados em ${nome}.`, "ok");
+    } catch (erro) {
+      avisar(
+        "Não foi possível gerar o arquivo",
+        erro?.message || "Tente novamente.",
+        "err",
+      );
+    }
   }
 
   return (
@@ -117,7 +139,7 @@ export default function Auditoria() {
         aberto={exportar}
         aoFechar={() => setExportar(false)}
         titulo="Exportar log de auditoria"
-        texto="Formato compatível com Excel. Interface demonstrativa — nenhum arquivo será gerado."
+        texto="Formato compatível com Excel. O arquivo é gerado no navegador com os eventos do filtro atual."
         icone="download"
         tom="ico-ok"
         rodape={

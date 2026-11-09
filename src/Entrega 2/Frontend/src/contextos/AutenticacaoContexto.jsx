@@ -115,6 +115,9 @@ const AutenticacaoContexto = createContext(null);
 
 export function AutenticacaoProvider({ children }) {
   const [usuario, setUsuario] = useState(lerSessao);
+  // Com token salvo, a sessão só pode ser considerada válida depois de
+  // /auth/me + hidratar; as rotas esperam para não decidir com dados antigos.
+  const [carregando, setCarregando] = useState(() => Boolean(getToken()));
 
   // Restaura a sessão do token salvo e recarrega os dados do banco.
   useEffect(() => {
@@ -123,6 +126,7 @@ export function AutenticacaoProvider({ children }) {
     if (!token) {
       limparSessaoArmazenada();
       setUsuario(null);
+      setCarregando(false);
       return;
     }
 
@@ -138,6 +142,8 @@ export function AutenticacaoProvider({ children }) {
         setToken(null);
         limparSessaoArmazenada();
         if (ativo) setUsuario(null);
+      } finally {
+        if (ativo) setCarregando(false);
       }
     })();
 
@@ -201,8 +207,8 @@ export function AutenticacaoProvider({ children }) {
   }, []);
 
   const valor = useMemo(
-    () => ({ usuario, entrar, cadastrar, sair, atualizarSessao }),
-    [usuario, entrar, cadastrar, sair, atualizarSessao],
+    () => ({ usuario, carregando, entrar, cadastrar, sair, atualizarSessao }),
+    [usuario, carregando, entrar, cadastrar, sair, atualizarSessao],
   );
 
   return <AutenticacaoContexto.Provider value={valor}>{children}</AutenticacaoContexto.Provider>;

@@ -1,18 +1,62 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import Icone from "../../componentes/Icone.jsx";
 import Marca from "../../componentes/Marca.jsx";
 import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
+import {
+  hidratar,
+  verificarVinculosDoResponsavel,
+} from "../../dados/carregarDados.js";
 import { api } from "../../dados/dados.js";
 import { iniciais, primeiroNome } from "../../utilitarios/formatadores.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
+
+const INTERVALO_VERIFICACAO = 10000;
 
 export default function Selecionar() {
   useTitulo("Escolha o aluno");
   const { usuario, sair } = useAutenticacao();
   const { avisar } = useAviso();
   const navegar = useNavigate();
-  const responsavel = api.resp(usuario?.respId || "r1");
+  const [, setVersao] = useState(0);
+  const responsavel = api.resp(usuario?.respId);
+
+  // Conta recém-criada: a coordenação ainda pode estar vinculando o aluno.
+  // Enquanto esta tela estiver aberta, verifica de tempos em tempos em vez
+  // de obrigar o responsável a recarregar a página.
+  useEffect(() => {
+    if (!usuario || !responsavel || responsavel.alunos.length > 0) {
+      return undefined;
+    }
+
+    let ativo = true;
+
+    async function verificar() {
+      if (document.visibilityState === "hidden") return;
+
+      try {
+        const quantidade = await verificarVinculosDoResponsavel(usuario);
+        if (!ativo || quantidade === 0) return;
+
+        await hidratar(usuario);
+        if (ativo) setVersao((valor) => valor + 1);
+      } catch {
+        /* mantém a espera e tenta de novo no próximo ciclo */
+      }
+    }
+
+    const intervalo = window.setInterval(verificar, INTERVALO_VERIFICACAO);
+    window.addEventListener("focus", verificar);
+    document.addEventListener("visibilitychange", verificar);
+
+    return () => {
+      ativo = false;
+      window.clearInterval(intervalo);
+      window.removeEventListener("focus", verificar);
+      document.removeEventListener("visibilitychange", verificar);
+    };
+  }, [usuario, responsavel]);
 
   if (!responsavel) return <Navigate to="/acesso-negado" replace />;
 
@@ -43,10 +87,15 @@ export default function Selecionar() {
         </div>
 
         {responsavel.alunos.length === 0 && (
-          <p className="lead" style={{ textAlign: "center", maxWidth: 520 }}>
-            Nenhum aluno foi vinculado a esta conta ainda. Peça à secretaria da escola para
-            autorizar o acesso ao seu filho.
-          </p>
+          <>
+            <p className="lead" style={{ textAlign: "center", maxWidth: 520 }}>
+              Nenhum aluno foi vinculado a esta conta ainda. Peça à secretaria da escola para
+              autorizar o acesso ao seu filho.
+            </p>
+            <p className="muted" style={{ textAlign: "center", maxWidth: 520 }}>
+              Esta página é atualizada automaticamente assim que o vínculo for criado.
+            </p>
+          </>
         )}
 
         <div className="pick-grid">

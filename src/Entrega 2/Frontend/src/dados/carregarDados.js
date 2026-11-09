@@ -52,7 +52,7 @@ const hora = (valor) => (valor ? String(valor).slice(0, 5) : "");
 
 /* ---------- mapeamentos ---------- */
 
-const mapAluno = (a, i) => ({
+export const mapAluno = (a, i) => ({
   id: sid(a.id),
   nome: a.nome || "",
   ra: a.matricula || "",
@@ -62,7 +62,7 @@ const mapAluno = (a, i) => ({
   cor: cor(i),
 });
 
-const mapTurma = (t) => ({
+export const mapTurma = (t) => ({
   id: sid(t.id),
   nome: t.nome || "",
   ano: t.anoSerie || "",
@@ -78,14 +78,14 @@ const mapArea = (a, i) => ({
   ativo: a.ativo !== false,
 });
 
-const mapDisciplina = (d) => ({
+export const mapDisciplina = (d) => ({
   id: sid(d.id),
   nome: d.nome || "",
   area: sid(d.idArea ?? ""),
   ativa: d.ativo !== false,
 });
 
-const mapProfessor = (p, i) => ({
+export const mapProfessor = (p, i) => ({
   id: sid(p.id),
   nome: p.nome || "Professor",
   email: p.email || "",
@@ -96,19 +96,27 @@ const mapProfessor = (p, i) => ({
   cor: cor(i),
 });
 
-const mapResponsavel = (r, i) => ({
-  id: sid(r.id),
-  nome: r.nome || "",
-  email: r.email || "",
-  tel: r.telefone || "",
-  alunos: [],
-  parentesco: "",
-  consentimento: "",
-  ativo: r.ativo !== false,
-  cor: cor(i),
-});
+export const mapResponsavel = (r, i) => {
+  const vinculos = Array.isArray(r.alunos) ? r.alunos : [];
+  const autorizados = vinculos.filter((item) => item && item.autorizado !== false);
+  const parentesco = autorizados
+    .map((item) => item.tipoRelacao)
+    .find((valor) => Boolean(valor));
 
-const mapVinculo = (v) => ({
+  return {
+    id: sid(r.id),
+    nome: r.nome || "",
+    email: r.email || "",
+    tel: r.telefone || "",
+    alunos: vinculos.map((item) => sid(item.id)).filter(Boolean),
+    parentesco: parentesco || "",
+    consentimento: autorizados.length ? "pela escola" : "—",
+    ativo: r.ativo !== false,
+    cor: cor(i),
+  };
+};
+
+export const mapVinculo = (v) => ({
   id: sid(v.id),
   turma: sid(v.idTurma),
   disc: sid(v.idDisciplina),
@@ -134,7 +142,7 @@ const mapTag = (t) => ({
   tipo: "",
 });
 
-const mapBimestre = (b) => {
+export const mapBimestre = (b) => {
   const inicio = new Date(b.dataInicio);
   const fim = new Date(b.dataFim);
   const agora = new Date();
@@ -235,28 +243,6 @@ export async function hidratar(sessao) {
         ),
       ];
     });
-
-    // A listagem de responsáveis não traz os alunos; busca os vínculos reais
-    // para preencher a tabela e o formulário de edição.
-    await Promise.all(
-      responsaveisMap.map(async (responsavel) => {
-        try {
-          const vinculosDoResponsavel = await api(
-            `/admin/responsaveis/${responsavel.id}/alunos`,
-          );
-          const autorizados = vinculosDoResponsavel.filter((item) => item.autorizado);
-          const parentesco = autorizados
-            .map((item) => item.tipoRelacao)
-            .find((valor) => Boolean(valor));
-
-          responsavel.alunos = vinculosDoResponsavel.map((item) => sid(item.id));
-          responsavel.parentesco = parentesco || "";
-          responsavel.consentimento = autorizados.length ? "pela escola" : "—";
-        } catch {
-          /* mantém os valores padrão */
-        }
-      }),
-    );
 
     preencher(dados.alunos, alunos.map(mapAluno));
     preencher(dados.turmas, turmas.map(mapTurma));
@@ -364,4 +350,39 @@ export async function hidratar(sessao) {
   preencher(dados.bimestres, bimestres.map(mapBimestre));
   preencher(dados.relatorios, rels.map(mapRel));
   preencher(dados.auditoria, []);
+}
+
+// Consulta leve usada pela tela de espera do responsável: verifica se a
+// escola já vinculou algum aluno sem recarregar o restante dos dados.
+export async function verificarVinculosDoResponsavel(sessao) {
+  if (sessao?.perfil !== "responsavel" || !sessao.respId) return 0;
+
+  const alunos = await api("/alunos");
+  preencher(dados.alunos, alunos.map(mapAluno));
+
+  const responsavel = dados.responsaveis.find(
+    (item) => item.id === sid(sessao.respId),
+  );
+
+  if (responsavel) {
+    preencher(
+      responsavel.alunos,
+      alunos.map((aluno) => sid(aluno.id)),
+    );
+  }
+
+  return alunos.length;
+}
+
+// Recalcula as disciplinas de cada professor a partir dos vínculos atuais.
+export function sincronizarDisciplinasDosProfessores() {
+  dados.professores.forEach((professor) => {
+    professor.disc = [
+      ...new Set(
+        dados.vinculos
+          .filter((vinculo) => vinculo.prof === professor.id)
+          .map((vinculo) => vinculo.disc),
+      ),
+    ];
+  });
 }

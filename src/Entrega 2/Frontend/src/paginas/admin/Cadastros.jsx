@@ -7,9 +7,12 @@ import Icone from "../../componentes/Icone.jsx";
 import LayoutApp from "../../componentes/LayoutApp.jsx";
 import Modal from "../../componentes/Modal.jsx";
 import PageHead from "../../componentes/PageHead.jsx";
-import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
-import { hidratar } from "../../dados/carregarDados.js";
+import {
+  mapAluno,
+  mapProfessor,
+  mapResponsavel,
+} from "../../dados/carregarDados.js";
 import { api, dados } from "../../dados/dados.js";
 import { api as apiServidor } from "../../servicos/api.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
@@ -77,7 +80,6 @@ function CabecalhoLista({ titulo, lead, children }) {
 
 export function Alunos() {
   useTitulo("Alunos");
-  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const [params] = useSearchParams();
   const [versao, setVersao] = useState(0);
@@ -102,12 +104,20 @@ export function Alunos() {
   );
 
   async function alternarAtivo(aluno, ativo) {
+    const anterior = aluno.ativo;
+
+    // Reflete a mudança na hora e confirma no servidor em seguida; esperar a
+    // recarga completa dos dados dava a impressão de sistema travado.
+    aluno.ativo = ativo;
+    setVersao((valor) => valor + 1);
+
     try {
-      await apiServidor(`/admin/alunos/${aluno.id}`, {
+      const atualizado = await apiServidor(`/admin/alunos/${aluno.id}`, {
         metodo: "PATCH",
         corpo: { ativo },
       });
-      await hidratar(usuario);
+
+      aluno.ativo = atualizado?.ativo ?? ativo;
       setVersao((valor) => valor + 1);
       avisar(
         `${aluno.nome} ${ativo ? "ativado" : "inativado"}`,
@@ -115,6 +125,8 @@ export function Alunos() {
         ativo ? "ok" : "warn",
       );
     } catch (erro) {
+      aluno.ativo = anterior;
+      setVersao((valor) => valor + 1);
       avisar("Não foi possível alterar a situação", erro.message, "err");
     }
   }
@@ -327,7 +339,6 @@ export function AlunoForm() {
   useTitulo("Aluno");
   const { id } = useParams();
   const navegar = useNavigate();
-  const { usuario } = useAutenticacao();
   const { avisar } = useAviso();
   const aluno = id ? api.aluno(id) : null;
   const [versao, setVersao] = useState(0);
@@ -342,6 +353,7 @@ export function AlunoForm() {
   const [respIds, setRespIds] = useState(() => (aluno ? api.respDoAluno(aluno.id).map((r) => r.id) : []));
   const [selecionado, setSelecionado] = useState("");
   const [erros, setErros] = useState({});
+  const [inativando, setInativando] = useState(false);
 
   // Recarrega os vínculos reais do aluno direto da API.
   useEffect(() => {
@@ -383,7 +395,12 @@ export function AlunoForm() {
         avisar("Não foi possível vincular", erro.message, "err");
         return;
       }
-      await hidratar(usuario);
+
+      // Mantém o store local coerente sem recarregar todos os dados.
+      const responsavel = api.resp(selecionado);
+      if (responsavel && !responsavel.alunos.includes(aluno.id)) {
+        responsavel.alunos.push(aluno.id);
+      }
     }
 
     setRespIds((atuais) => (atuais.includes(selecionado) ? atuais : [...atuais, selecionado]));
@@ -393,20 +410,30 @@ export function AlunoForm() {
   }
 
   async function remover(idResp) {
+    const anteriores = respIds;
+
+    // Some com o vínculo da tela imediatamente; se a API falhar, ele volta.
+    setRespIds((atuais) => atuais.filter((item) => item !== idResp));
+    setVersao((valor) => valor + 1);
+
     if (aluno) {
       try {
         await apiServidor(`/admin/alunos/${aluno.id}/responsaveis/${idResp}`, {
           metodo: "DELETE",
         });
       } catch (erro) {
+        setRespIds(anteriores);
+        setVersao((valor) => valor + 1);
         avisar("Não foi possível remover o vínculo", erro.message, "err");
         return;
       }
-      await hidratar(usuario);
+
+      const responsavel = api.resp(idResp);
+      if (responsavel) {
+        responsavel.alunos = responsavel.alunos.filter((id) => id !== aluno.id);
+      }
     }
 
-    setRespIds((atuais) => atuais.filter((item) => item !== idResp));
-    setVersao((valor) => valor + 1);
     avisar("Vínculo removido", "O responsável não vê mais os relatórios deste aluno.", "warn");
   }
 
@@ -460,9 +487,31 @@ export function AlunoForm() {
             corpo: { idResponsavel: Number(idResp) },
           });
         }
+
+        const novo = mapAluno({ ...criado, idTurma }, dados.alunos.length);
+        dados.alunos.push(novo);
+
+        // Os vínculos já foram criados acima; reflete no store local.
+        respIds.forEach((idResp) => {
+          const responsavel = api.resp(idResp);
+          if (responsavel && !responsavel.alunos.includes(novo.id)) {
+            responsavel.alunos.push(novo.id);
+          }
+        });
       } else {
-        await apiServidor(`/admin/alunos/${aluno.id}`, { metodo: "PUT", corpo });
-        if (String(form.turma) !== String(aluno.turma)) {
+        const turmaAnterior = aluno.turma;
+        const atualizado = await apiServidor(`/admin/alunos/${aluno.id}`, {
+          metodo: "PUT",
+          corpo,
+        });
+
+        aluno.nome = atualizado.nome ?? corpo.nome;
+        aluno.nasc = form.nasc;
+        aluno.ra = atualizado.matricula ?? corpo.matricula;
+        aluno.ativo = atualizado.ativo ?? corpo.ativo;
+        aluno.turma = String(atualizado.idTurma ?? idTurma);
+
+        if (String(form.turma) !== String(turmaAnterior)) {
           const matriculas = await apiServidor(`/admin/alunos/${aluno.id}/matriculas`);
           for (const matricula of matriculas.filter((item) => item.ativo)) {
             await apiServidor(
@@ -477,7 +526,6 @@ export function AlunoForm() {
         }
       }
 
-      await hidratar(usuario);
       avisar(
         aluno ? "Aluno atualizado" : "Aluno cadastrado",
         "Os dados foram gravados no banco de dados.",
@@ -490,14 +538,18 @@ export function AlunoForm() {
   }
 
   async function inativar() {
-    if (!aluno) return;
+    if (!aluno || inativando) return;
+    setInativando(true);
+
     try {
       await apiServidor(`/admin/alunos/${aluno.id}`, { metodo: "DELETE" });
-      await hidratar(usuario);
+      aluno.ativo = false;
       avisar("Aluno inativado", "Relatórios já publicados continuam no histórico.", "warn");
       navegar("/admin/alunos");
     } catch (erro) {
       avisar("Não foi possível inativar o aluno", erro.message, "err");
+    } finally {
+      setInativando(false);
     }
   }
 
@@ -635,8 +687,13 @@ export function AlunoForm() {
 
         <div className="form-actions">
           {aluno && (
-            <button type="button" className="btn btn-danger spacer" onClick={inativar}>
-              <Icone nome="power" /> Inativar aluno
+            <button
+              type="button"
+              className="btn btn-danger spacer"
+              onClick={inativar}
+              disabled={inativando}
+            >
+              <Icone nome="power" /> {inativando ? "Inativando…" : "Inativar aluno"}
             </button>
           )}
           <Link className="btn btn-secondary" to="/admin/alunos">
@@ -743,7 +800,6 @@ export function ProfessorForm() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { avisar } = useAviso();
-  const { usuario } = useAutenticacao();
   const professor = id ? api.prof(id) : null;
   const [form, setForm] = useState(() => ({
     nome: professor?.nome || "",
@@ -789,10 +845,15 @@ export function ProfessorForm() {
         };
         if (form.senha) corpo.senha = form.senha;
 
-        await apiServidor(`/admin/professores/${professor.id}`, {
+        const atualizado = await apiServidor(`/admin/professores/${professor.id}`, {
           metodo: "PUT",
           corpo,
         });
+
+        professor.nome = atualizado.nome ?? corpo.nome;
+        professor.email = atualizado.email ?? corpo.email;
+        professor.matricula = atualizado.matricula ?? corpo.matricula;
+        professor.ativo = atualizado.ativo ?? corpo.ativo;
         avisar("Professor atualizado", "Os dados foram salvos no banco.", "ok");
       } else {
         const criado = await apiServidor("/admin/professores", {
@@ -811,6 +872,10 @@ export function ProfessorForm() {
           await apiServidor(`/admin/professores/${criado.id}`, { metodo: "DELETE" });
         }
 
+        dados.professores.push(
+          mapProfessor({ ...criado, ativo: form.ativo }, dados.professores.length),
+        );
+
         avisar(
           "Professor cadastrado",
           "A conta já pode entrar com o e-mail e a senha informados.",
@@ -818,7 +883,6 @@ export function ProfessorForm() {
         );
       }
 
-      if (usuario) await hidratar(usuario);
       navegar("/admin/professores");
     } catch (erro) {
       avisar("Não foi possível salvar o professor", erro.message, "err");
@@ -1038,7 +1102,6 @@ export function ResponsavelForm() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { avisar } = useAviso();
-  const { usuario } = useAutenticacao();
   const responsavel = id ? api.resp(id) : null;
   const [form, setForm] = useState(() => ({
     nome: responsavel?.nome || "",
@@ -1084,6 +1147,7 @@ export function ResponsavelForm() {
 
     try {
       let idResponsavel = responsavel?.id;
+      let criado = null;
 
       const corpo = {
         nome: form.nome.trim(),
@@ -1099,7 +1163,7 @@ export function ResponsavelForm() {
         });
       } else {
         corpo.senha = form.senha;
-        const criado = await apiServidor("/admin/responsaveis", {
+        criado = await apiServidor("/admin/responsaveis", {
           metodo: "POST",
           corpo,
         });
@@ -1111,31 +1175,49 @@ export function ResponsavelForm() {
       const remover = atuais.filter((idAluno) => !form.alunos.includes(idAluno));
       const falhas = [];
 
-      for (const idAluno of form.alunos) {
-        try {
-          await apiServidor(`/admin/alunos/${idAluno}/responsaveis`, {
-            metodo: "POST",
-            corpo: {
-              idResponsavel: Number(idResponsavel),
-              tipoRelacao: form.parentesco,
-            },
-          });
-        } catch (erro) {
-          falhas.push(erro.message);
-        }
-      }
+      await Promise.all([
+        ...form.alunos.map(async (idAluno) => {
+          try {
+            await apiServidor(`/admin/alunos/${idAluno}/responsaveis`, {
+              metodo: "POST",
+              corpo: {
+                idResponsavel: Number(idResponsavel),
+                tipoRelacao: form.parentesco,
+              },
+            });
+          } catch (erro) {
+            falhas.push(erro.message);
+          }
+        }),
+        ...remover.map(async (idAluno) => {
+          try {
+            await apiServidor(`/admin/alunos/${idAluno}/responsaveis/${idResponsavel}`, {
+              metodo: "DELETE",
+            });
+          } catch (erro) {
+            falhas.push(erro.message);
+          }
+        }),
+      ]);
 
-      for (const idAluno of remover) {
-        try {
-          await apiServidor(`/admin/alunos/${idAluno}/responsaveis/${idResponsavel}`, {
-            metodo: "DELETE",
-          });
-        } catch (erro) {
-          falhas.push(erro.message);
-        }
-      }
+      // Mantém o store local coerente sem recarregar todos os dados.
+      const alunos = [...form.alunos];
+      const consentimento = alunos.length ? "pela escola" : "—";
 
-      if (usuario) await hidratar(usuario);
+      if (responsavel) {
+        responsavel.nome = corpo.nome;
+        responsavel.email = corpo.email;
+        responsavel.tel = corpo.telefone;
+        responsavel.alunos = alunos;
+        responsavel.parentesco = form.parentesco;
+        responsavel.consentimento = consentimento;
+      } else if (criado) {
+        const novo = mapResponsavel(criado, dados.responsaveis.length);
+        novo.alunos = alunos;
+        novo.parentesco = form.parentesco;
+        novo.consentimento = consentimento;
+        dados.responsaveis.push(novo);
+      }
 
       if (falhas.length) {
         avisar(

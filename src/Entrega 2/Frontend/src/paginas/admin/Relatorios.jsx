@@ -11,10 +11,24 @@ import StatusBadge from "../../componentes/StatusBadge.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
 import { STATUS } from "../../dados/status.js";
+import { baixarArquivo, gerarCsv, gerarXlsx } from "../../utilitarios/arquivos.js";
 import { fmtMedia } from "../../utilitarios/formatadores.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 const POR_PAGINA = 12;
+
+const COLUNAS = [
+  { chave: "aluno", rotulo: "Aluno" },
+  { chave: "turma", rotulo: "Turma" },
+  { chave: "disciplina", rotulo: "Disciplina" },
+  { chave: "professor", rotulo: "Professor" },
+  { chave: "ano", rotulo: "Ano letivo", tipo: "numero" },
+  { chave: "bimestre", rotulo: "Bimestre", tipo: "numero" },
+  { chave: "media", rotulo: "Média", tipo: "numero" },
+  { chave: "status", rotulo: "Status" },
+  { chave: "tags", rotulo: "Tags" },
+  { chave: "descricao", rotulo: "Observações do professor" },
+];
 
 export default function Relatorios() {
   useTitulo("Relatórios gerenciais");
@@ -105,12 +119,57 @@ export default function Relatorios() {
   }
 
   function gerarArquivo() {
-    setExportar(false);
-    avisar(
-      "Exportação simulada",
-      `${lista.length} registros seriam gerados em .${formato}. Nenhum arquivo real foi criado.`,
-      "ok",
-    );
+    try {
+      const linhas = lista.map((relatorio) => {
+        const media = Number(relatorio.media);
+        return {
+          aluno: api.aluno(relatorio.aluno)?.nome || "",
+          turma: api.turma(relatorio.turma)?.nome || "",
+          disciplina: api.disc(relatorio.disc)?.nome || "",
+          professor: api.prof(relatorio.prof)?.nome || "",
+          ano: relatorio.ano,
+          bimestre: relatorio.bim,
+          media:
+            relatorio.media == null || relatorio.media === "" || !Number.isFinite(media)
+              ? ""
+              : Math.round(media * 100) / 100,
+          status: STATUS[relatorio.status]?.label || relatorio.status,
+          tags: (relatorio.tags || [])
+            .map((idTag) => dados.tags.find((tag) => tag.id === idTag)?.nome)
+            .filter(Boolean)
+            .join(" · "),
+          descricao: relatorio.desc || "",
+        };
+      });
+      const agora = new Date();
+      const carimbo = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}-${String(agora.getDate()).padStart(2, "0")}`;
+      const extensao = formato === "xlsx" ? "xlsx" : "csv";
+      const nome = `relatorios-kfka-${carimbo}.${extensao}`;
+      const linhasCsv = linhas.map((linha) => ({
+        ...linha,
+        media:
+          typeof linha.media === "number"
+            ? String(linha.media).replace(".", ",")
+            : linha.media,
+      }));
+      const arquivo =
+        extensao === "xlsx"
+          ? gerarXlsx(COLUNAS, linhas, "Relatórios")
+          : gerarCsv(COLUNAS, linhasCsv);
+
+      baixarArquivo(nome, arquivo);
+      setExportar(false);
+      avisar("Arquivo gerado", `${linhas.length} registros exportados em ${nome}.`, "ok");
+    } catch (erro) {
+      avisar(
+        "Não foi possível gerar o arquivo",
+        erro?.message || "Tente novamente.",
+        "err",
+      );
+    }
   }
 
   return (
@@ -452,7 +511,7 @@ export default function Relatorios() {
         aberto={exportar}
         aoFechar={() => setExportar(false)}
         titulo="Exportar relatório filtrado"
-        texto="Formato compatível com Excel. Interface demonstrativa — nenhum arquivo será gerado."
+        texto="Formato compatível com Excel. O arquivo é gerado no navegador com os registros que atendem aos filtros atuais."
         icone="download"
         tom="ico-ok"
         rodape={
@@ -495,7 +554,7 @@ export default function Relatorios() {
             </span>
             <span className="grow">
               <b className="mono">.csv</b>
-              <small>Texto separado por vírgulas</small>
+              <small>Texto separado por ponto e vírgula</small>
             </span>
           </label>
         </fieldset>

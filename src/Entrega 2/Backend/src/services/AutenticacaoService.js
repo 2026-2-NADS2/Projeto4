@@ -187,12 +187,21 @@ class AutenticacaoService {
             perfilSolicitado
         );
 
-        await this.garantirResponsavel(usuario);
+        const token = this.tokenService.emitir(usuario);
+        const publico = await this.montarUsuarioPublico(usuario);
 
-        return {
-            token: this.tokenService.emitir(usuario),
-            usuario: await this.montarUsuarioPublico(usuario)
-        };
+        // Reaproveita a consulta feita por montarUsuarioPublico. Só cria o
+        // registro de responsável quando ele realmente não existe (contas
+        // legadas), evitando uma segunda consulta em todo login.
+        if (publico.perfil === "responsavel" && publico.responsavelId == null) {
+            await this.garantirResponsavel(usuario);
+            return {
+                token,
+                usuario: await this.montarUsuarioPublico(usuario)
+            };
+        }
+
+        return { token, usuario: publico };
     }
 
     async registrar({ nome, email, senha, perfil }) {
@@ -265,9 +274,17 @@ class AutenticacaoService {
             );
         }
 
-        await this.garantirResponsavel(usuario);
+        const publico = await this.montarUsuarioPublico(usuario);
 
-        return await this.montarUsuarioPublico(usuario);
+        // O registro em "responsavel" já é garantido no login e no cadastro.
+        // Tokens antigos de contas legadas ainda recebem a garantia aqui, sem
+        // custo extra no caminho normal (responsavelId já preenchido).
+        if (publico.perfil === "responsavel" && publico.responsavelId == null) {
+            await this.garantirResponsavel(usuario);
+            return await this.montarUsuarioPublico(usuario);
+        }
+
+        return publico;
     }
 }
 
