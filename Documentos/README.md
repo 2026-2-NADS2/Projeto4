@@ -50,18 +50,18 @@ Cada disciplina possui abaixo seu respectivo registro. Quando aplicável, as dec
 
 | **Campo** | **Descrição** |
 | --- | --- |
-| **Aluno(s) Responsável(veis)** | **[preencher]** |
-| **Ferramenta utilizada** | [preencher] |
-| **Versão/modelo** | [preencher] |
+| **Aluno(s) Responsável(veis)** | **Paulo Marcelli** |
+| **Ferramenta utilizada** | Claude (Anthropic), usado pelo Claude Code com o conector oficial do Figma, que cria e edita as páginas diretamente no arquivo do projeto |
+| **Versão/modelo** | Claude Opus 5.5 |
 | **Disciplina / Trabalho** | Design de Interface Digital – Projeto Interdisciplinar KFKA: Acompanhamento Escolar – Entregas 1 e 2 |
-| **Finalidade de uso** | [preencher – descrever como a ferramenta foi utilizada como apoio] |
-| **Prompts principais utilizados** | [preencher – resumir os principais tipos de prompts utilizados] |
-| **Trechos ou entregas afetadas** | [preencher – indicar telas, protótipos, documentação ou outros materiais afetados] |
+| **Finalidade de uso** | Utilizado como ferramenta de apoio na produção dos artefatos de design do KFKA no Figma, a partir das definições do grupo e do protótipo do projeto: fichas das três personas (Administrador, Professor(a) e Responsável); Brand Persona (posicionamento com visão, missão e valores, promessa e tom de voz); avaliação de usabilidade do protótipo com as 10 heurísticas de Jakob Nielsen; guia de estilo, moodboard e atualização do Design System com o layout novo; e wireframes em preto e branco de telas do site. Junto com os prompts, foram usadas skills de design carregadas no Claude: UI/UX (ui-ux-pro-max), Animate (animação e motion design) e Design System (tokens, componentes e guia de estilo). As decisões de design, a revisão do conteúdo gerado e os ajustes finais foram feitos pelo aluno e pela equipe. |
+| **Prompts principais utilizados** | Criação da ficha das personas do KFKA (Administrador, Professor(a) e Responsável); criação da Brand Persona (posicionamento, promessa e tom de voz/arquétipos); análise de usabilidade do protótipo pelas 10 heurísticas de Nielsen, feita no Figma; criação da página de guia de estilo e do moodboard e atualização do Design System com o layout novo; criação de wireframes (rascunhos em preto e branco) de algumas telas do site. |
+| **Trechos ou entregas afetadas** | Páginas do arquivo do Figma “KFKA — Entrega 2 · Design de Interface Digital” ([figma.com/design/GSyJCvuMCQ52KIFjUyMAwm](https://www.figma.com/design/GSyJCvuMCQ52KIFjUyMAwm)): 👤 Personas; 🗣️ Brand Persona; 🔍 Heurísticas de Nielsen; 📘 Guia de estilo e 🧩 Moodboard; Design System, página Marca e capa (atualizadas com o layout novo); ✏️ Wireframes. |
 
 ### Declarações completas
 
-- [Entrega 1 – adicionar declaração](./Design%20de%20Interface%20Digital/[preencher])
-- [Entrega 2 – adicionar declaração](./Design%20de%20Interface%20Digital/[preencher])
+- [Declaração de Uso de IA – Design de Interface Digital – Entrega 1](https://github.com/2026-2-NADS2/Projeto4/tree/main/Documentos/Entrega%201/Design%20de%20Interface%20Digital)
+- [Declaração de Uso de IA – Design de Interface Digital – Entrega 2](https://github.com/2026-2-NADS2/Projeto4/tree/main/Documentos/Entrega%202/Design%20de%20Interface%20Digital)
 
 ---
 
