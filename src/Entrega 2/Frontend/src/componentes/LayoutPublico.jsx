@@ -75,9 +75,7 @@ export default function LayoutPublico({ children }) {
             <small>Acompanhamento Escolar</small>
           </span>
         </Link>
-        <span>
-          Projeto Interdisciplinar · 2º ADS · FECAP 2026 · dados fictícios nesta demonstração
-        </span>
+        <span>Projeto Interdisciplinar · 2º ADS · FECAP 2026</span>
         <span className="row" style={{ flexWrap: "wrap" }}>
           <Link to="/documentacao">Documentação</Link>
           <Link to="/privacidade">Privacidade</Link>

@@ -48,7 +48,11 @@ export default function Configuracoes({ papel }) {
 
   function alternar(chave, ligado) {
     salvarPreferencias({ [chave]: ligado });
-    setStatus(`${chave === "espaco" ? "Espaçamento de leitura" : chave === "links" ? "Links sublinhados" : "Redução de animações"}: ${ligado ? "ligado" : "desligado"}.`);
+    setStatus(
+      `${chave === "espaco" ? "Espaçamento de leitura" : "Links sublinhados"}: ${
+        ligado ? "ligado" : "desligado"
+      }.`,
+    );
   }
 
   function restaurar() {
@@ -161,21 +165,7 @@ export default function Configuracoes({ papel }) {
               <b>Sublinhar links</b>
               <small>Links no texto ficam sublinhados, não só coloridos.</small>
             </span>
-          </label>
-          <label className="switch switch-longo">
-            <input
-              type="checkbox"
-              role="switch"
-              checked={prefs.menosMovimento}
-              onChange={(evento) => alternar("movimento", evento.target.checked)}
-            />
-            <span className="track" aria-hidden="true" />
-            <span className="switch-txt">
-              <b>Reduzir animações</b>
-              <small>Além do que o aparelho já pede. Nada se desloca na tela.</small>
-            </span>
-          </label>
-        </div>
+          </label>        </div>
 
         <div className="row-between config-rodape">
           <p className="muted config-status" role="status" aria-live="polite">

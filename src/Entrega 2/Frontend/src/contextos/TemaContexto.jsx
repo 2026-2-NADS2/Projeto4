@@ -6,7 +6,6 @@ const PADRAO = {
   texto: "100",
   espaco: false,
   links: false,
-  menosMovimento: false,
 };
 
 export const TAMANHOS = [
@@ -56,7 +55,6 @@ export function TemaProvider({ children }) {
     raiz.style.fontSize = prefs.texto === "100" ? "" : `${prefs.texto}%`;
     raiz.classList.toggle("texto-espacado", Boolean(prefs.espaco));
     raiz.classList.toggle("links-sublinhados", Boolean(prefs.links));
-    raiz.classList.toggle("menos-movimento", Boolean(prefs.menosMovimento));
 
     if (prefs.tema === "sistema") {
       delete raiz.dataset.theme;

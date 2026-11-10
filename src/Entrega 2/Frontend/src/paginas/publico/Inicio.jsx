@@ -4,7 +4,6 @@ import Avatar from "../../componentes/Avatar.jsx";
 import Icone from "../../componentes/Icone.jsx";
 import LayoutPublico from "../../componentes/LayoutPublico.jsx";
 import StatusBadge from "../../componentes/StatusBadge.jsx";
-import { useTema } from "../../contextos/TemaContexto.jsx";
 import { useRevelar } from "../../utilitarios/useRevelar.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
@@ -138,16 +137,13 @@ function PreviaPerfil({ perfil }) {
 export default function Inicio() {
   useTitulo("Início");
   useRevelar();
-  const { prefs } = useTema();
   const localizacao = useLocation();
   const arteRef = useRef(null);
   const abasRef = useRef(null);
   const [perfilAtivo, setPerfilAtivo] = useState(PERFIS[0]);
 
   const reduzirMovimento =
-    prefs.menosMovimento ||
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
-    false;
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false;
 
   const [statuses, setStatuses] = useState(() =>
     NOTAS.map(() => (reduzirMovimento ? "publicado" : "rascunho")),

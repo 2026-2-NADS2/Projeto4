@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken } from "../servicos/api";
-import { hidratar } from "../dados/carregarDados";
+import {
+  hidratar,
+  limparSnapshots,
+  restaurarSnapshot,
+  salvarSnapshot,
+} from "../dados/carregarDados";
 
 const CHAVE = "kfka-sessao";
 
@@ -94,6 +99,15 @@ function limparSessaoArmazenada() {
   }
 }
 
+// Mantém a escolha de "lembrar" feita no login.
+function sessaoLembrada() {
+  try {
+    return Boolean(localStorage.getItem(CHAVE));
+  } catch {
+    return false;
+  }
+}
+
 // Converte o usuário devolvido pela API no formato de sessão usado pelas telas.
 function enriquecerSessao(usuario) {
   const meta = PERFIS[usuario.perfil] || {};
@@ -111,20 +125,57 @@ function enriquecerSessao(usuario) {
   };
 }
 
+// Evita abrir o retrato local quando o JWT já passou do prazo. A assinatura
+// continua sendo verificada pelo backend em /auth/me; isto é só uma barreira
+// local para não exibir dados de uma sessão vencida.
+function tokenExpirado(token) {
+  try {
+    const parte = token.split(".")[1];
+    if (!parte) return true;
+
+    const base64 = parte.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(
+      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")),
+    );
+    return typeof payload.exp === "number" && payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+// Com um retrato em sessionStorage, a página abre na hora com os últimos
+// dados e revalida /auth/me + hidratar em segundo plano. Sem retrato, mantém
+// o bloqueio antigo até a validação terminar.
+function estadoInicial() {
+  const token = getToken();
+  if (!token) return { usuario: null, carregando: false };
+
+  const sessao = lerSessao();
+  if (!sessao?.perfil || tokenExpirado(token)) {
+    return { usuario: null, carregando: true };
+  }
+
+  return {
+    usuario: sessao,
+    carregando: !restaurarSnapshot(sessao),
+  };
+}
+
 const AutenticacaoContexto = createContext(null);
 
 export function AutenticacaoProvider({ children }) {
-  const [usuario, setUsuario] = useState(lerSessao);
-  // Com token salvo, a sessão só pode ser considerada válida depois de
-  // /auth/me + hidratar; as rotas esperam para não decidir com dados antigos.
-  const [carregando, setCarregando] = useState(() => Boolean(getToken()));
+  const [inicial] = useState(estadoInicial);
+  const [usuario, setUsuario] = useState(inicial.usuario);
+  const [carregando, setCarregando] = useState(inicial.carregando);
 
-  // Restaura a sessão do token salvo e recarrega os dados do banco.
+  // Valida a sessão do token salvo e recarrega os dados do banco. Quando há
+  // retrato local, isso roda em segundo plano sem esconder a interface.
   useEffect(() => {
     const token = getToken();
 
     if (!token) {
       limparSessaoArmazenada();
+      limparSnapshots();
       setUsuario(null);
       setCarregando(false);
       return;
@@ -135,13 +186,22 @@ export function AutenticacaoProvider({ children }) {
     (async () => {
       try {
         const { usuario: dadosUsuario } = await api("/auth/me");
+        if (!ativo || getToken() !== token) return;
+
         const sessao = enriquecerSessao(dadosUsuario);
         await hidratar(sessao);
-        if (ativo) setUsuario(sessao);
+        if (!ativo || getToken() !== token) return;
+
+        persistirSessao(sessao, sessaoLembrada());
+        setUsuario(sessao);
       } catch {
+        // Se o token mudou (logout ou outro login), esta resposta é antiga.
+        if (!ativo || getToken() !== token) return;
+
         setToken(null);
         limparSessaoArmazenada();
-        if (ativo) setUsuario(null);
+        limparSnapshots();
+        setUsuario(null);
       } finally {
         if (ativo) setCarregando(false);
       }
@@ -151,6 +211,24 @@ export function AutenticacaoProvider({ children }) {
       ativo = false;
     };
   }, []);
+
+  // Salva o retrato ao fechar ou esconder a aba para preservar alterações
+  // otimistas que ainda não passaram por uma nova hidratação.
+  useEffect(() => {
+    if (!usuario?.perfil) return undefined;
+
+    const salvar = () => salvarSnapshot(usuario);
+    const aoTrocarVisibilidade = () => {
+      if (document.visibilityState === "hidden") salvar();
+    };
+
+    window.addEventListener("pagehide", salvar);
+    document.addEventListener("visibilitychange", aoTrocarVisibilidade);
+    return () => {
+      window.removeEventListener("pagehide", salvar);
+      document.removeEventListener("visibilitychange", aoTrocarVisibilidade);
+    };
+  }, [usuario]);
 
   const entrar = useCallback(async ({ perfil, email, senha, lembrar = true }) => {
     try {
@@ -186,6 +264,7 @@ export function AutenticacaoProvider({ children }) {
 
   const sair = useCallback(() => {
     limparSessaoArmazenada();
+    limparSnapshots();
     setToken(null);
     setUsuario(null);
   }, []);
@@ -193,15 +272,7 @@ export function AutenticacaoProvider({ children }) {
   // Atualiza a sessão depois de editar o próprio perfil.
   const atualizarSessao = useCallback((dadosUsuario) => {
     const sessao = enriquecerSessao(dadosUsuario);
-    let lembrar = false;
-
-    try {
-      lembrar = Boolean(localStorage.getItem(CHAVE));
-    } catch {
-      /* armazenamento indisponível */
-    }
-
-    persistirSessao(sessao, lembrar);
+    persistirSessao(sessao, sessaoLembrada());
     setUsuario(sessao);
     return sessao;
   }, []);

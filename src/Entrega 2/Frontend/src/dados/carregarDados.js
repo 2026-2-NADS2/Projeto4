@@ -255,6 +255,7 @@ export async function hidratar(sessao) {
     preencher(dados.bimestres, bimestres.map(mapBimestre));
     preencher(dados.relatorios, rels.map(mapRel));
     preencher(dados.auditoria, auditoria.map(mapAuditoria));
+    salvarSnapshot(sessao);
     return;
   }
 
@@ -350,6 +351,7 @@ export async function hidratar(sessao) {
   preencher(dados.bimestres, bimestres.map(mapBimestre));
   preencher(dados.relatorios, rels.map(mapRel));
   preencher(dados.auditoria, []);
+  salvarSnapshot(sessao);
 }
 
 // Consulta leve usada pela tela de espera do responsável: verifica se a
@@ -371,6 +373,7 @@ export async function verificarVinculosDoResponsavel(sessao) {
     );
   }
 
+  salvarSnapshot(sessao);
   return alunos.length;
 }
 
@@ -385,4 +388,98 @@ export function sincronizarDisciplinasDosProfessores() {
       ),
     ];
   });
+}
+
+/* ---------- retrato local para recarga instantânea (F5) ---------- */
+
+const CHAVE_SNAPSHOT = "kfka-dados";
+const VERSAO_SNAPSHOT = 1;
+const LIMITE_SNAPSHOT = 3_000_000;
+
+// Prefere o e-mail porque ele existe tanto na sessão salva no navegador
+// quanto na devolvida por /auth/me; idUsuario pode faltar em sessões antigas.
+const identidadeDaSessao = (sessao) =>
+  String(sessao?.email || sessao?.idUsuario || "anon");
+
+const chaveSnapshot = (sessao) =>
+  `${CHAVE_SNAPSHOT}:${sessao?.perfil || "anon"}:${identidadeDaSessao(sessao)}`;
+
+export function salvarSnapshot(sessao) {
+  if (!sessao?.perfil) return false;
+
+  try {
+    const json = JSON.stringify({
+      versao: VERSAO_SNAPSHOT,
+      perfil: sessao.perfil,
+      identidade: identidadeDaSessao(sessao),
+      dados: {
+        alunos: dados.alunos,
+        turmas: dados.turmas,
+        tags: dados.tags,
+        areas: dados.areas,
+        disciplinas: dados.disciplinas,
+        professores: dados.professores,
+        responsaveis: dados.responsaveis,
+        vinculos: dados.vinculos,
+        bimestres: dados.bimestres,
+        relatorios: dados.relatorios,
+        auditoria: dados.auditoria,
+      },
+    });
+
+    if (json.length > LIMITE_SNAPSHOT) return false;
+
+    sessionStorage.setItem(chaveSnapshot(sessao), json);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function restaurarSnapshot(sessao) {
+  if (!sessao?.perfil) return false;
+
+  try {
+    const salvo = sessionStorage.getItem(chaveSnapshot(sessao));
+    if (!salvo) return false;
+
+    const snapshot = JSON.parse(salvo);
+    if (
+      !snapshot ||
+      snapshot.versao !== VERSAO_SNAPSHOT ||
+      snapshot.perfil !== sessao.perfil ||
+      String(snapshot.identidade) !== identidadeDaSessao(sessao)
+    ) {
+      return false;
+    }
+
+    const guardado = snapshot.dados || {};
+    const lista = (valor) => (Array.isArray(valor) ? valor : []);
+
+    preencher(dados.alunos, lista(guardado.alunos));
+    preencher(dados.turmas, lista(guardado.turmas));
+    preencher(dados.tags, lista(guardado.tags));
+    preencher(dados.areas, lista(guardado.areas));
+    preencher(dados.disciplinas, lista(guardado.disciplinas));
+    preencher(dados.professores, lista(guardado.professores));
+    preencher(dados.responsaveis, lista(guardado.responsaveis));
+    preencher(dados.vinculos, lista(guardado.vinculos));
+    preencher(dados.bimestres, lista(guardado.bimestres));
+    preencher(dados.relatorios, lista(guardado.relatorios));
+    preencher(dados.auditoria, lista(guardado.auditoria));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function limparSnapshots() {
+  try {
+    const prefixo = `${CHAVE_SNAPSHOT}:`;
+    Object.keys(sessionStorage)
+      .filter((chave) => chave.startsWith(prefixo))
+      .forEach((chave) => sessionStorage.removeItem(chave));
+  } catch {
+    /* armazenamento indisponível */
+  }
 }

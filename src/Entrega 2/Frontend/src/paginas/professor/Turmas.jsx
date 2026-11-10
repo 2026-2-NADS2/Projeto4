@@ -187,7 +187,7 @@ export function TurmaDetalhe() {
             >
               <Icone nome={icone} />
             </span>
-            <div>
+            <div style={{ textAlign: "center" }}>
               <b className="mono" style={{ fontSize: "1.375rem" }}>
                 {progresso.st[status]}
               </b>
