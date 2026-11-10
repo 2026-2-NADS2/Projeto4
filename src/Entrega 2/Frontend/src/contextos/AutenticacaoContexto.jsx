@@ -148,16 +148,20 @@ function tokenExpirado(token) {
 // o bloqueio antigo até a validação terminar.
 function estadoInicial() {
   const token = getToken();
-  if (!token) return { usuario: null, carregando: false };
+  if (!token) {
+    return { usuario: null, carregando: false, snapshotRestaurado: false };
+  }
 
   const sessao = lerSessao();
   if (!sessao?.perfil || tokenExpirado(token)) {
-    return { usuario: null, carregando: true };
+    return { usuario: null, carregando: true, snapshotRestaurado: false };
   }
 
+  const snapshotRestaurado = restaurarSnapshot(sessao);
   return {
     usuario: sessao,
-    carregando: !restaurarSnapshot(sessao),
+    carregando: !snapshotRestaurado,
+    snapshotRestaurado,
   };
 }
 
@@ -194,14 +198,25 @@ export function AutenticacaoProvider({ children }) {
 
         persistirSessao(sessao, sessaoLembrada());
         setUsuario(sessao);
-      } catch {
+      } catch (erro) {
         // Se o token mudou (logout ou outro login), esta resposta é antiga.
         if (!ativo || getToken() !== token) return;
 
-        setToken(null);
-        limparSessaoArmazenada();
-        limparSnapshots();
-        setUsuario(null);
+        // Só encerra a sessão quando o servidor confirma que o token é
+        // inválido. Falhas transitórias (rede, 5xx ou requisição abortada
+        // por um F5) não podem apagar o token nem o retrato local.
+        if (erro?.status === 401) {
+          setToken(null);
+          limparSessaoArmazenada();
+          limparSnapshots();
+          setUsuario(null);
+          return;
+        }
+
+        // Sem retrato não há dados seguros para exibir (o store ainda tem
+        // os exemplos do protótipo). Pede login de novo, mas preserva o
+        // token para a próxima tentativa.
+        if (!inicial.snapshotRestaurado) setUsuario(null);
       } finally {
         if (ativo) setCarregando(false);
       }
