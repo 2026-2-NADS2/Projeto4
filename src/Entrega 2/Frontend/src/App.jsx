@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import ConsentimentoLgpd from "./componentes/ConsentimentoLgpd.jsx";
+import LimiteDeErro from "./componentes/LimiteDeErro.jsx";
 import RotaProtegida from "./componentes/RotaProtegida.jsx";
 
 // Cada rota carrega seu próprio chunk: o pacote inicial fica só com React,
@@ -81,8 +83,9 @@ export default function App() {
   return (
     <>
       <ScrollAoTopo />
-      <Suspense fallback={<Carregando />}>
-        <Routes>
+      <LimiteDeErro>
+        <Suspense fallback={<Carregando />}>
+          <Routes>
         {/* Público */}
         <Route path="/" element={<Inicio />} />
         <Route path="/entrar" element={<Entrar />} />
@@ -425,8 +428,10 @@ export default function App() {
         />
 
         <Route path="*" element={<NaoEncontrada />} />
-        </Routes>
-      </Suspense>
+          </Routes>
+        </Suspense>
+        <ConsentimentoLgpd />
+      </LimiteDeErro>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "../../componentes/Avatar.jsx";
 import Campo from "../../componentes/Campo.jsx";
@@ -9,6 +9,11 @@ import { useAutenticacao } from "../../contextos/AutenticacaoContexto.jsx";
 import { useAviso } from "../../contextos/AvisoContexto.jsx";
 import { api, dados } from "../../dados/dados.js";
 import { api as apiServidor } from "../../servicos/api.js";
+import {
+  formatarDecisao,
+  lerConsentimento,
+  registrarConsentimento,
+} from "../../utilitarios/consentimento.js";
 import { useTitulo } from "../../utilitarios/useTitulo.js";
 
 const VOLTA = {
@@ -53,6 +58,29 @@ export default function Perfil({ papel }) {
   });
   const [prefs, setPrefs] = useState({ revisao: true, devolvidos: true, resumo: false });
   const [enviando, setEnviando] = useState(false);
+  // Prefere o id da conta: ele não muda se o e-mail for editado aqui.
+  const contaConsentimento = usuario?.idUsuario ?? usuario?.email;
+  const [consentimento, setConsentimento] = useState(() =>
+    lerConsentimento(contaConsentimento),
+  );
+
+  useEffect(() => {
+    setConsentimento(lerConsentimento(contaConsentimento));
+  }, [contaConsentimento]);
+
+  function decidirConsentimento(autorizado) {
+    const registro = registrarConsentimento(contaConsentimento, autorizado);
+    if (!registro) return;
+
+    setConsentimento(registro);
+    avisar(
+      "Preferência de privacidade atualizada",
+      autorizado
+        ? "Você autorizou as finalidades opcionais."
+        : "Você não autorizou as finalidades opcionais; o acesso essencial segue liberado.",
+      autorizado ? "ok" : "info",
+    );
+  }
 
   const voltar = VOLTA[papel];
 
@@ -323,6 +351,31 @@ export default function Perfil({ papel }) {
               Os dados desta demonstração são fictícios. Em produção, o acesso aos relatórios segue
               a LGPD e a política de privacidade da escola.
             </p>
+            <p style={{ fontSize: "0.875rem" }}>
+              <b>
+                {consentimento
+                  ? formatarDecisao(consentimento)
+                  : "Você ainda não decidiu sobre as finalidades opcionais."}
+              </b>
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => decidirConsentimento(true)}
+                disabled={consentimento?.autorizado === true}
+              >
+                <Icone nome="check" className="icon-sm" /> Autorizar
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => decidirConsentimento(false)}
+                disabled={consentimento?.autorizado === false}
+              >
+                <Icone nome="x" className="icon-sm" /> Não autorizar
+              </button>
+            </div>
             <Link className="link-config" to="/privacidade">
               <Icone nome="lock" className="icon-sm" /> Ver política de privacidade
             </Link>

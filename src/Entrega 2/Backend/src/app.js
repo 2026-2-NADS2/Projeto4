@@ -78,14 +78,41 @@ function criarApp(dependencias) {
     const indexHtml = path.join(caminhoFrontend, "index.html");
 
     if (fs.existsSync(indexHtml)) {
-        app.use(express.static(caminhoFrontend));
+        app.use(
+            express.static(caminhoFrontend, {
+                setHeaders(res, arquivo) {
+                    // Chunks com hash no nome nunca mudam: cache longo vale.
+                    if (arquivo.includes(`${path.sep}assets${path.sep}`)) {
+                        res.setHeader(
+                            "Cache-Control",
+                            "public, max-age=31536000, immutable"
+                        );
+                    } else if (arquivo.endsWith("index.html")) {
+                        res.setHeader(
+                            "Cache-Control",
+                            "public, max-age=0, must-revalidate"
+                        );
+                    }
+                }
+            })
+        );
 
         app.use((req, res, next) => {
-            if (req.path.startsWith("/api")) {
+            // Só rotas de tela recebem o index.html. Asset ausente precisa
+            // continuar 404: devolver HTML como text/html quebra o módulo.
+            if (
+                req.path.startsWith("/api") ||
+                req.path.startsWith("/assets/") ||
+                path.extname(req.path)
+            ) {
                 return next();
             }
 
-            res.sendFile(indexHtml);
+            res.sendFile(indexHtml, {
+                headers: {
+                    "Cache-Control": "public, max-age=0, must-revalidate"
+                }
+            });
         });
     }
 
