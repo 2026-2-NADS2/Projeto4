@@ -161,3 +161,7 @@ graphify-out/
 # Configurações locais do Claude Code
 .claude/
 CLAUDE.md
+
+# DDL do banco que precisa ser rodado manualmente como dono (KFKA_owner).
+# O arquivo continua no disco para ser usado no SQL Editor do Neon.
+src/Entrega 2/Backend/scripts/sql/convite.sql
