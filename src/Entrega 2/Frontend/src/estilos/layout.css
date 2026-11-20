@@ -330,7 +330,7 @@ html.gaveta-forcada .topbar .search {
     display: none;
   }
   .content {
-    padding: var(--s4) var(--s4) 96px;
+    padding: var(--s4) var(--s4) calc(96px + env(safe-area-inset-bottom));
     gap: var(--s5);
   }
   .page-head .actions {
@@ -338,6 +338,12 @@ html.gaveta-forcada .topbar .search {
   }
   .page-head .actions .btn {
     flex: 1 1 auto;
+  }
+  /* Dropdowns do header: alinhados à esquerda e contidos na tela. */
+  .menu {
+    right: auto;
+    left: 1rem;
+    max-width: calc(100vw - 2rem);
   }
 }
 

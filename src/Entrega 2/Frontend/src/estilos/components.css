@@ -1001,6 +1001,9 @@
   top: calc(100% + 8px);
   z-index: 50;
   min-width: 240px;
+  max-width: min(400px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   background: var(--bg-card);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -1010,6 +1013,15 @@
 }
 .menu {
   transform-origin: top right;
+}
+/* Telas pequenas: o menu não pode ficar alinhado à direita do header
+   (que se estende pela tela inteira) — alinha à borda esquerda do viewport. */
+@media (max-width: 720px) {
+  .menu {
+    right: auto;
+    left: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
 }
 .dropdown.open .menu {
   display: block;
