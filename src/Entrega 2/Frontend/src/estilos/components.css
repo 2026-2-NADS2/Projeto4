@@ -1023,15 +1023,19 @@
     transform-origin: top right;
   }
 }
-/* Telas pequenas: o sino e o avatar ficam perto da borda direita do header,
-   então o menu cresce para a esquerda (right: 0) e a largura fica limitada à tela. */
+/* Telas pequenas: os menus do header passam a se posicionar em relação à
+   topbar (não ao botão), então o painel nunca ultrapassa a borda da tela —
+   vale para o sino de notificações e para o menu do perfil. */
 @media (max-width: 720px) {
-  .menu {
-    right: 0;
+  .topbar .dropdown {
+    position: static;
+  }
+  .topbar .menu {
+    right: 1rem;
     left: auto;
     min-width: 0;
-    width: min(340px, calc(100vw - 1.5rem));
-    max-width: calc(100vw - 1.5rem);
+    width: min(340px, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
     max-height: calc(100vh - var(--topbar-h) - 1.5rem);
     transform-origin: top right;
   }
@@ -1082,6 +1086,13 @@
 .notif-panel {
   width: min(400px, 92vw);
   padding: 10px;
+}
+/* Mobile: notif-panel não pode ser mais largo que a tela */
+@media (max-width: 720px) {
+  .notif-panel {
+    width: min(340px, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+  }
 }
 .notif-item {
   display: flex;
