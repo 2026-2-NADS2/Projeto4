@@ -1014,13 +1014,26 @@
 .menu {
   transform-origin: top right;
 }
-/* Telas pequenas: o menu não pode ficar alinhado à direita do header
-   (que se estende pela tela inteira) — alinha à borda esquerda do viewport. */
+/* Telas grandes: menu alinhado à direita do header, largura contida */
+@media (min-width: 721px) {
+  .menu {
+    right: 0;
+    left: auto;
+    max-width: min(360px, calc(100vw - 4rem));
+    transform-origin: top right;
+  }
+}
+/* Telas pequenas: o sino e o avatar ficam perto da borda direita do header,
+   então o menu cresce para a esquerda (right: 0) e a largura fica limitada à tela. */
 @media (max-width: 720px) {
   .menu {
-    right: auto;
-    left: 1rem;
-    max-width: calc(100vw - 2rem);
+    right: 0;
+    left: auto;
+    min-width: 0;
+    width: min(340px, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100vh - var(--topbar-h) - 1.5rem);
+    transform-origin: top right;
   }
 }
 .dropdown.open .menu {
